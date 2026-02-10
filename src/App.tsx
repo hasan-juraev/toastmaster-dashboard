@@ -6,6 +6,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Members from "./pages/Members";
 import MemberDetail from "./pages/MemberDetail";
+import Meetings from "./pages/Meetings";
+import MeetingDetail from "./pages/MeetingDetail";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -63,6 +65,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <MemberDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/meetings"
+        element={
+          <ProtectedRoute>
+            <Meetings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/meetings/:id"
+        element={
+          <ProtectedRoute>
+            <MeetingDetail />
           </ProtectedRoute>
         }
       />
