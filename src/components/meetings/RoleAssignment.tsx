@@ -11,6 +11,14 @@ interface RoleAssignmentProps {
   meetingId: string;
 }
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Unable to update this role assignment.";
+}
+
 export default function RoleAssignment({ meetingId }: RoleAssignmentProps) {
   const { data: roles, isLoading: loadingRoles } = useRoles();
   const { data: members, isLoading: loadingMembers } = useMembers();
@@ -52,8 +60,8 @@ export default function RoleAssignment({ meetingId }: RoleAssignmentProps) {
           allow_duplicate: false,
         });
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     }
   };
 

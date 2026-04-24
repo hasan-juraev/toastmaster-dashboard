@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "../app/AuthProvider";
+import { useAuth } from "../app/AuthContext";
 import { useMembers } from "../hooks/useMembers";
 
 const NAV_CARDS = [

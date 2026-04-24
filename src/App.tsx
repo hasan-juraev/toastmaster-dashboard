@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider, useAuth } from "./app/AuthProvider";
+import { AuthProvider } from "./app/AuthProvider";
+import { useAuth } from "./app/AuthContext";
 import { queryClient } from "./lib/queryClient";
+import { AppLoadingScreen } from "./components/ui/AppLoadingScreen";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Members from "./pages/Members";
@@ -14,11 +16,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
+    return <AppLoadingScreen message="Checking your club session..." />;
   }
 
   if (!user) {
@@ -32,11 +30,7 @@ function AppRoutes() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   return (
