@@ -54,9 +54,10 @@ export default function MemberForm({ member, onClose }: MemberFormProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/25 p-3 backdrop-blur-sm sm:items-center sm:p-6">
+      <div className="w-full max-w-md rounded-[1.75rem] border border-app-border bg-app-panel p-5 shadow-app-card sm:p-6">
+        <p className="app-eyebrow">Member</p>
+        <h2 className="mb-4 mt-2 text-2xl font-bold text-app-text">
           {member ? "Edit Member" : "Add Member"}
         </h2>
 
@@ -64,7 +65,7 @@ export default function MemberForm({ member, onClose }: MemberFormProps) {
           <div>
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-app-text-muted"
             >
               Name *
             </label>
@@ -72,17 +73,17 @@ export default function MemberForm({ member, onClose }: MemberFormProps) {
               id="name"
               type="text"
               {...register("name")}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-app-text placeholder:text-app-text-subtle"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+              <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
             )}
           </div>
 
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-app-text-muted"
             >
               Email
             </label>
@@ -90,42 +91,42 @@ export default function MemberForm({ member, onClose }: MemberFormProps) {
               id="email"
               type="email"
               {...register("email")}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-app-text placeholder:text-app-text-subtle"
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600">
+              <p className="mt-1 text-sm text-red-500">
                 {errors.email.message}
               </p>
             )}
           </div>
 
-          <div className="flex items-center">
+          <div className="flex items-center rounded-xl bg-slate-50 px-3 py-3">
             <input
               id="active"
               type="checkbox"
               {...register("active")}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 rounded border-app-border bg-app-panel-soft text-primary"
             />
             <label
               htmlFor="active"
-              className="ml-2 block text-sm text-gray-700"
+              className="ml-2 block text-sm text-app-text-muted"
             >
               Active
             </label>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-xl border border-app-border px-4 py-3 text-app-text-muted transition hover:bg-app-panel-soft"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className="rounded-xl bg-primary px-4 py-3 font-semibold text-white transition hover:bg-primary/90 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : member ? "Update" : "Create"}
             </button>

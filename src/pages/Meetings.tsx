@@ -1,14 +1,40 @@
 import { useState } from "react";
-import { useMeetings, useUpdateMeeting } from "../hooks/useMeetings";
 import { Link } from "react-router-dom";
+import { useMeetings, useUpdateMeeting } from "../hooks/useMeetings";
 import type { Meeting } from "../types/database";
 import MeetingForm from "../components/meetings/MeetingForm";
+import { AppShell } from "../components/ui/AppShell";
+
+function formatMeetingDate(date: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
+function MeetingStatusBadge({ status }: { status: string }) {
+  const badgeClass =
+    status === "completed"
+      ? "bg-emerald-50 text-emerald-600"
+      : "bg-amber-50 text-amber-600";
+
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${badgeClass}`}>
+      {status}
+    </span>
+  );
+}
 
 export default function Meetings() {
   const { data: meetings, isLoading, error } = useMeetings();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const updateMeeting = useUpdateMeeting();
+  const upcomingCount =
+    meetings?.filter((meeting) => meeting.status === "upcoming").length ?? 0;
+  const completedCount =
+    meetings?.filter((meeting) => meeting.status === "completed").length ?? 0;
 
   const handleEdit = (meeting: Meeting) => {
     setEditingMeeting(meeting);
@@ -29,109 +55,187 @@ export default function Meetings() {
     setEditingMeeting(null);
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-8">
-        <div className="text-gray-600">Loading meetings...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-8">
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-          Error loading meetings: {error.message}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Meetings</h1>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          Add Meeting
-        </button>
-      </div>
+    <AppShell>
+      <section className="space-y-6 pt-8 pb-6 md:space-y-8 md:pt-10">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="app-eyebrow">
+              Schedule
+            </p>
+            <h1 className="mt-2 text-4xl font-semibold tracking-tight text-app-text md:text-[3rem]">
+              Meetings
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-app-text-muted md:text-base">
+              Manage upcoming sessions, archive completed meetings, and open
+              detail workspaces from a layout that scales beyond mobile width.
+            </p>
+          </div>
 
-      {isFormOpen && (
-        <MeetingForm meeting={editingMeeting} onClose={handleCloseForm} />
-      )}
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="rounded-[1.35rem] border border-app-border bg-app-panel px-4 py-3 text-sm text-app-text-muted shadow-app-card">
+              <span className="font-semibold text-app-text">{meetings?.length ?? 0}</span>{" "}
+              meetings tracked
+            </div>
+            <button
+              onClick={() => setIsFormOpen(true)}
+              className="rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(59,130,246,0.24)] transition hover:bg-primary/90"
+            >
+              Add Meeting
+            </button>
+          </div>
+        </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Theme
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Location
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {meetings?.map((meeting) => (
-              <tr key={meeting.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Link
-                    to={`/meetings/${meeting.id}`}
-                    className="text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    {new Date(meeting.date).toLocaleDateString()}
-                  </Link>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {meeting.theme || "-"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {meeting.location || "-"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleStatusToggle(meeting)}
-                    className={`px-2 py-1 text-xs font-semibold rounded-full transition-colors ${
-                      meeting.status === "completed"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                    }`}
-                  >
-                    {meeting.status}
-                  </button>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => handleEdit(meeting)}
-                    className="text-blue-600 hover:text-blue-900 mr-4"
-                  >
-                    Edit
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {isFormOpen && (
+          <MeetingForm meeting={editingMeeting} onClose={handleCloseForm} />
+        )}
 
-        {meetings?.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="app-panel rounded-[1.5rem] p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+              Total Meetings
+            </p>
+            <div className="mt-3 text-3xl font-bold text-app-text">
+              {meetings?.length ?? 0}
+            </div>
+          </div>
+          <div className="app-panel rounded-[1.5rem] p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+              Upcoming
+            </p>
+            <div className="mt-3 text-3xl font-bold text-app-text">{upcomingCount}</div>
+          </div>
+          <div className="app-panel rounded-[1.5rem] p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+              Completed
+            </p>
+            <div className="mt-3 text-3xl font-bold text-app-text">{completedCount}</div>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="app-panel rounded-[1.5rem] px-5 py-10 text-center text-app-text-muted">
+            Loading meetings...
+          </div>
+        ) : error ? (
+          <div className="rounded-[1.5rem] border border-app-danger/25 bg-app-danger/10 px-4 py-3 text-sm text-red-600">
+            Error loading meetings: {error.message}
+          </div>
+        ) : meetings?.length ? (
+          <>
+            <div className="space-y-4 md:hidden">
+              {meetings.map((meeting) => (
+                <article
+                  key={meeting.id}
+                  className="app-panel rounded-[1.5rem] p-5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-muted">
+                        {formatMeetingDate(meeting.date)}
+                      </p>
+                      <Link
+                        to={`/meetings/${meeting.id}`}
+                        className="mt-2 block text-2xl font-semibold leading-tight text-app-text transition hover:text-primary"
+                      >
+                        {meeting.theme || "Untitled Meeting"}
+                      </Link>
+                      <p className="mt-2 text-sm text-app-text-muted">
+                        {meeting.location || "Location not set"}
+                      </p>
+                    </div>
+                    <MeetingStatusBadge status={meeting.status} />
+                  </div>
+
+                  <div className="mt-5 flex gap-3">
+                    <Link
+                      to={`/meetings/${meeting.id}`}
+                      className="flex-1 rounded-xl border border-app-border bg-app-panel-soft px-4 py-3 text-center text-sm font-medium text-app-text"
+                    >
+                      Open
+                    </Link>
+                    <button
+                      onClick={() => handleEdit(meeting)}
+                      className="rounded-xl border border-app-border bg-app-panel-soft px-4 py-3 text-sm font-medium text-app-text"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleStatusToggle(meeting)}
+                      className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white"
+                    >
+                      {meeting.status === "completed" ? "Reopen" : "Mark Done"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-hidden rounded-[1.75rem] border border-app-border bg-app-panel shadow-app-card md:block">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-app-border">
+                  <thead className="bg-app-panel-soft/60">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
+                        Date
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
+                        Theme
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
+                        Location
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-app-border">
+                    {meetings.map((meeting) => (
+                      <tr key={meeting.id} className="transition hover:bg-app-panel-soft/40">
+                        <td className="px-6 py-5 whitespace-nowrap">
+                          <Link
+                            to={`/meetings/${meeting.id}`}
+                            className="font-medium text-primary hover:text-primary/80"
+                          >
+                            {formatMeetingDate(meeting.date)}
+                          </Link>
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap text-sm text-app-text">
+                          {meeting.theme || "-"}
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap text-sm text-app-text-muted">
+                          {meeting.location || "-"}
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap">
+                          <button onClick={() => handleStatusToggle(meeting)}>
+                            <MeetingStatusBadge status={meeting.status} />
+                          </button>
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap text-right">
+                          <button
+                            onClick={() => handleEdit(meeting)}
+                            className="text-sm font-medium text-primary hover:text-primary/80"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="app-panel rounded-[1.5rem] px-5 py-12 text-center text-app-text-muted">
             No meetings found. Create your first meeting to get started.
           </div>
         )}
-      </div>
-    </div>
+      </section>
+    </AppShell>
   );
 }

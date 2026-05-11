@@ -3,91 +3,217 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import type { Meeting } from "../types/database";
 import RoleAssignment from "../components/meetings/RoleAssignment";
+import { AppShell } from "../components/ui/AppShell";
+import { useMeetingRoles, useRoles } from "../hooks/useRoles";
+
+interface MeetingSpeech {
+  id: string;
+  title: string | null;
+  manual_time: string | null;
+  completed: boolean;
+}
+
+interface MeetingDetailData {
+  meeting: Meeting;
+  speeches: MeetingSpeech[];
+}
 
 export default function MeetingDetail() {
   const { id } = useParams<{ id: string }>();
+  const { data: roles } = useRoles();
+  const { data: meetingRoles } = useMeetingRoles(id ?? "");
 
   const {
-    data: meeting,
+    data,
     isLoading,
     error,
-  } = useQuery({
-    queryKey: ["meeting", id],
+  } = useQuery<MeetingDetailData>({
+    queryKey: ["meeting-detail", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("meetings")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const [{ data: meeting, error: meetingError }, { data: speeches, error: speechesError }] =
+        await Promise.all([
+          supabase.from("meetings").select("*").eq("id", id).single(),
+          supabase
+            .from("speeches")
+            .select("id, title, manual_time, completed")
+            .eq("meeting_id", id)
+            .order("created_at", { ascending: true }),
+        ]);
 
-      if (error) throw error;
-      return data as Meeting;
+      if (meetingError) throw meetingError;
+      if (speechesError) throw speechesError;
+
+      return {
+        meeting: meeting as Meeting,
+        speeches: (speeches ?? []) as MeetingSpeech[],
+      };
     },
     enabled: !!id,
   });
 
+  const meeting = data?.meeting;
+  const speeches = data?.speeches ?? [];
+  const assignedCount = meetingRoles?.filter((assignment) => assignment.member_id).length ?? 0;
+  const openCount = Math.max((roles?.length ?? 0) - assignedCount, 0);
+
   if (isLoading) {
     return (
-      <div className="p-8 text-center text-gray-500">
-        Loading meeting details...
-      </div>
+      <AppShell>
+        <div className="pt-10 text-center text-app-text-muted">
+          Loading meeting details...
+        </div>
+      </AppShell>
     );
   }
 
   if (error || !meeting) {
     return (
-      <div className="p-8">
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-          Error loading meeting details
+      <AppShell>
+        <div className="pt-10">
+          <div className="rounded-[1.5rem] border border-app-danger/25 bg-app-danger/10 px-4 py-3 text-sm text-red-600">
+            Error loading meeting details
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="p-8 space-y-8">
-      <div>
-        <Link
-          to="/meetings"
-          className="text-blue-600 hover:text-blue-800 text-sm"
-        >
-          ← Back to Meetings
-        </Link>
-      </div>
+    <AppShell>
+      <section className="space-y-6 pt-8 pb-6 md:space-y-8 md:pt-10">
+        <div>
+          <Link to="/meetings" className="text-sm font-medium text-primary">
+            ← Back to Meetings
+          </Link>
+        </div>
 
-      <div className="bg-white shadow rounded-lg p-6 border border-gray-200">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {meeting.theme || "Untitled Meeting"}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Date: {new Date(meeting.date).toLocaleDateString()}
-            </p>
-            <p className="text-gray-600 font-medium">
-              Location: {meeting.location || "Not set"}
-            </p>
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="app-panel rounded-[2rem] p-6 md:p-7">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="app-eyebrow">Meeting</p>
+                <h1 className="mt-2 text-4xl font-semibold tracking-tight text-app-text md:text-[3rem]">
+                  {meeting.theme || "Untitled Meeting"}
+                </h1>
+                <p className="mt-3 text-base text-app-text-muted">
+                  {new Date(meeting.date).toLocaleDateString()}
+                </p>
+                <p className="mt-1 text-base font-medium text-app-text-muted">
+                  {meeting.location || "Location not set"}
+                </p>
+              </div>
+              <span
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold uppercase ${
+                  meeting.status === "completed"
+                    ? "bg-emerald-50 text-emerald-600"
+                    : "bg-amber-50 text-amber-600"
+                }`}
+              >
+                {meeting.status}
+              </span>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-[1.35rem] bg-app-panel-soft p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                  Assigned Roles
+                </p>
+                <div className="mt-2 text-3xl font-bold text-app-text">
+                  {assignedCount}
+                </div>
+              </div>
+              <div className="rounded-[1.35rem] bg-app-panel-soft p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                  Open Roles
+                </p>
+                <div className="mt-2 text-3xl font-bold text-app-text">{openCount}</div>
+              </div>
+              <div className="rounded-[1.35rem] bg-app-panel-soft p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                  Speeches
+                </p>
+                <div className="mt-2 text-3xl font-bold text-app-text">
+                  {speeches.length}
+                </div>
+              </div>
+            </div>
           </div>
-          <span
-            className={`px-3 py-1 text-sm font-semibold rounded-full ${
-              meeting.status === "completed"
-                ? "bg-green-100 text-green-800"
-                : "bg-yellow-100 text-yellow-800"
-            }`}
-          >
-            {meeting.status}
-          </span>
-        </div>
-      </div>
 
-      <RoleAssignment meetingId={meeting.id} />
-
-      <div className="bg-white shadow rounded-lg p-6 border border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Speeches</h2>
-        <div className="bg-gray-50 p-8 rounded-lg text-center text-gray-500 border border-dashed border-gray-300">
-          Speech tracking coming in Step 4.
+          <div className="app-panel rounded-[2rem] p-6">
+            <p className="app-eyebrow">Meeting health</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-app-text">
+              At-a-glance
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-app-text-muted">
+              Use this workspace to fill remaining roles, review planned speeches,
+              and keep the session organized before the meeting starts.
+            </p>
+            <div className="mt-5 rounded-[1.35rem] bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-app-text">
+                {openCount > 0 ? `${openCount} roles still need coverage` : "Role board is covered"}
+              </p>
+              <p className="mt-2 text-sm text-app-text-muted">
+                {openCount > 0
+                  ? "Assign members below to close out the agenda."
+                  : "You are ready to focus on speeches and facilitation."}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+
+        <div className="app-panel rounded-[2rem] p-6">
+          <RoleAssignment meetingId={meeting.id} />
+        </div>
+
+        <div className="app-panel rounded-[2rem] p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="app-eyebrow">Speeches</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-app-text">
+                Speech plan
+              </h2>
+            </div>
+          </div>
+
+          {speeches.length ? (
+            <div className="mt-5 grid gap-3">
+              {speeches.map((speech, index) => (
+                <article
+                  key={speech.id}
+                  className="rounded-[1.35rem] border border-app-border bg-app-panel-soft px-4 py-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                        Speech {index + 1}
+                      </p>
+                      <h3 className="mt-1 text-lg font-semibold text-app-text">
+                        {speech.title || "Untitled Speech"}
+                      </h3>
+                      <p className="mt-1 text-sm text-app-text-muted">
+                        {speech.manual_time || "Time not set"}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${
+                        speech.completed
+                          ? "bg-emerald-50 text-emerald-600"
+                          : "bg-amber-50 text-amber-600"
+                      }`}
+                    >
+                      {speech.completed ? "Completed" : "Planned"}
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-5 rounded-[1.25rem] border border-dashed border-app-border bg-app-panel-soft p-8 text-center text-app-text-muted">
+              No speeches added yet. Add speeches in the data layer and they will appear here.
+            </div>
+          )}
+        </div>
+      </section>
+    </AppShell>
   );
 }

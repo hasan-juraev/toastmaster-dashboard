@@ -30,7 +30,7 @@ export default function RoleAssignment({ meetingId }: RoleAssignmentProps) {
 
   if (loadingRoles || loadingMembers || loadingMeetingRoles) {
     return (
-      <div className="p-4 text-center text-gray-500">
+      <div className="app-panel rounded-[1.5rem] p-6 text-center text-app-text-muted">
         Loading roles and members...
       </div>
     );
@@ -67,39 +67,70 @@ export default function RoleAssignment({ meetingId }: RoleAssignmentProps) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-gray-900">Role Assignments</h2>
+      <div>
+        <p className="app-eyebrow">Assignments</p>
+        <h2 className="mt-2 text-xl font-semibold text-app-text">Role Assignments</h2>
+      </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+        <div className="rounded-[1.25rem] border border-app-danger/25 bg-app-danger/10 px-4 py-3 text-sm text-red-600">
           {error}
         </div>
       )}
 
-      <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="space-y-3 md:hidden">
+        {roles?.map((role) => {
+          const assignment = meetingRoles?.find((mr) => mr.role_id === role.id);
+
+          return (
+            <article key={role.id} className="app-panel rounded-[1.4rem] p-4">
+              <p className="text-base font-semibold text-app-text">{role.name}</p>
+              <select
+                className="mt-3 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
+                value={assignment?.member_id || ""}
+                onChange={(e) =>
+                  handleMemberChange(role.id, e.target.value || null)
+                }
+              >
+                <option value="">- Unassigned -</option>
+                {members
+                  ?.filter((m) => m.active)
+                  .map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+              </select>
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-[1.75rem] border border-app-border bg-app-panel shadow-app-card md:block">
+        <table className="min-w-full divide-y divide-app-border">
+          <thead className="bg-app-panel-soft/60">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
+              <th className="w-1/3 px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
                 Role
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
                 Member
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-app-border">
             {roles?.map((role) => {
               const assignment = meetingRoles?.find(
                 (mr) => mr.role_id === role.id,
               );
               return (
                 <tr key={role.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 text-sm font-medium text-app-text">
                     {role.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <select
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
                       value={assignment?.member_id || ""}
                       onChange={(e) =>
                         handleMemberChange(role.id, e.target.value || null)

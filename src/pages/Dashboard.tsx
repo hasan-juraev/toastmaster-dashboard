@@ -2,315 +2,396 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../app/AuthContext";
 import { useMembers } from "../hooks/useMembers";
+import { useMeetings } from "../hooks/useMeetings";
+import { AppShell } from "../components/ui/AppShell";
 
-const NAV_CARDS = [
-  {
-    to: "/members",
-    icon: "group",
-    label: "Members",
-    description: "Manage club members and roles",
-    accentBg: "#eff6ff",
-    accentColor: "#3b82f6",
-    disabled: false,
-  },
-  {
-    to: "/meetings",
-    icon: "event",
-    label: "Meetings",
-    description: "Schedule and record meetings",
-    accentBg: "#f5f3ff",
-    accentColor: "#7c3aed",
-    disabled: false,
-  },
-  {
-    to: "/analytics",
-    icon: "bar_chart",
-    label: "Reports",
-    description: "View analytics & progress",
-    accentBg: "#ecfdf5",
-    accentColor: "#10b981",
-    disabled: false,
-  },
-];
+function formatMeetingDate(date: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(date));
+}
+
+function formatShortMeetingDate(date: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(date));
+}
+
+function getMeetingTime(status: string) {
+  return status === "completed" ? "Completed meeting" : "7:30 AM";
+}
+
+function MetricCard({
+  icon,
+  label,
+  value,
+  helper,
+}: {
+  icon: string;
+  label: string;
+  value: string | number;
+  helper: string;
+}) {
+  return (
+    <div className="app-panel rounded-[1.6rem] p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <span className="material-symbols-outlined text-[1.15rem]">{icon}</span>
+        </div>
+        <span className="rounded-full bg-app-panel-soft px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-app-text-muted">
+          Live
+        </span>
+      </div>
+      <p className="mt-5 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+        {label}
+      </p>
+      <div className="mt-2 text-[2rem] font-bold leading-none text-app-text sm:text-[2.2rem]">
+        {value}
+      </div>
+      <p className="mt-2 text-sm text-app-text-muted">{helper}</p>
+    </div>
+  );
+}
+
+function AgendaItem({
+  time,
+  meridiem,
+  title,
+  subtitle,
+  active,
+}: {
+  time: string;
+  meridiem: string;
+  title: string;
+  subtitle: string;
+  active?: boolean;
+}) {
+  return (
+    <article
+      className={`rounded-[1.5rem] border p-4 shadow-app-card transition md:p-5 ${
+        active
+          ? "border-primary/20 bg-primary/[0.05]"
+          : "border-app-border bg-app-panel"
+      }`}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex w-full flex-row items-center justify-between rounded-[1.2rem] bg-slate-50 px-3 py-3 text-center sm:min-w-[4.5rem] sm:w-auto sm:flex-col sm:justify-center">
+          <span className="text-lg font-bold leading-none text-app-text">{time}</span>
+          <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-app-text-subtle sm:mt-1">
+            {meridiem}
+          </span>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold leading-tight text-app-text md:text-[1.15rem]">
+                {title}
+              </h3>
+              <p className="mt-1 text-sm text-app-text-muted">{subtitle}</p>
+            </div>
+
+            {active ? (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white shadow-[0_12px_24px_rgba(59,130,246,0.28)]">
+                <span className="material-symbols-outlined text-[1.15rem]">
+                  play_arrow
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { data: members } = useMembers();
+  const { data: meetings } = useMeetings();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
 
-  const displayName = user?.email?.split("@")[0] ?? "there";
-  const activeCount = members?.filter((m) => m.active).length ?? "—";
-  const totalCount = members?.length ?? "—";
+  const displayName = user?.email?.split("@")[0] ?? "Member";
+  const activeMembers = members?.filter((member) => member.active) ?? [];
+  const totalMembers = members?.length ?? 0;
+  const nextMeeting = meetings?.find((meeting) => meeting.status !== "completed");
+  const completedMeetings =
+    meetings?.filter((meeting) => meeting.status === "completed").length ?? 0;
+  const scheduledMeetings =
+    meetings?.filter((meeting) => meeting.status !== "completed").length ?? 0;
+  const completionRate = meetings?.length
+    ? Math.round((completedMeetings / meetings.length) * 100)
+    : 0;
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        background: "#f8fafc",
-        fontFamily: "'Inter', sans-serif",
-        color: "#0f172a",
-      }}
-    >
-      {/* Top Bar */}
-      <header
-        className="flex items-center justify-between px-6 py-4"
-        style={{
-          background: "#fff",
-          borderBottom: "1px solid #f1f5f9",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 flex items-center justify-center"
-            style={{
-              background: "#eff6ff",
-              borderRadius: "0.75rem",
-              border: "1px solid #bfdbfe",
-            }}
-          >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: "1.25rem", color: "#3b82f6" }}
-            >
-              record_voice_over
-            </span>
-          </div>
-          <div>
-            <div
-              className="font-bold text-lg leading-none"
-              style={{ color: "#0f172a" }}
-            >
-              Toastmasters
-            </div>
-            <div className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>
-              Club Dashboard
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex flex-col items-end">
-            <span
-              className="text-sm font-medium capitalize"
-              style={{ color: "#0f172a" }}
-            >
-              {displayName}
-            </span>
-            <span className="text-xs" style={{ color: "#94a3b8" }}>
-              {user?.email}
-            </span>
-          </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-sm font-medium transition-colors"
-            style={{
-              padding: "0.5rem 0.75rem",
-              color: "#ef4444",
-              background: "transparent",
-              border: "none",
-              borderRadius: "0.75rem",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#fef2f2")}
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "transparent")
-            }
-            title="Sign out"
-          >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: "1rem" }}
-            >
-              logout
-            </span>
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main */}
-      <main className="max-w-3xl mx-auto px-6 py-10">
-        {/* Welcome */}
-        <div className="mb-8">
-          <h2
-            className="text-2xl font-bold tracking-tight"
-            style={{ color: "#0f172a" }}
-          >
-            Good to see you, <span className="capitalize">{displayName}</span>{" "}
-            👋
-          </h2>
-          <p className="mt-1 text-sm" style={{ color: "#64748b" }}>
-            Here's what's happening in your club.
-          </p>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div
-            className="p-5"
-            style={{
-              background: "#fff",
-              borderRadius: "1rem",
-              border: "1px solid #f1f5f9",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-            }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "1rem", color: "#3b82f6" }}
-              >
-                person
-              </span>
-              <span
-                className="text-xs font-semibold uppercase tracking-wide"
-                style={{ color: "#94a3b8" }}
-              >
-                Active Members
-              </span>
-            </div>
-            <p className="text-3xl font-bold" style={{ color: "#3b82f6" }}>
-              {activeCount}
-            </p>
-            <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>
-              of {totalCount} total
-            </p>
-          </div>
-          <div
-            className="p-5"
-            style={{
-              background: "#fff",
-              borderRadius: "1rem",
-              border: "1px solid #f1f5f9",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-            }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "1rem", color: "#7c3aed" }}
-              >
-                calendar_month
-              </span>
-              <span
-                className="text-xs font-semibold uppercase tracking-wide"
-                style={{ color: "#94a3b8" }}
-              >
-                Next Meeting
-              </span>
-            </div>
-            <p className="text-3xl font-bold" style={{ color: "#7c3aed" }}>
-              —
-            </p>
-            <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>
-              Check meetings page
-            </p>
-          </div>
-        </div>
-
-        {/* Nav cards */}
-        <div
-          className="text-xs font-semibold uppercase tracking-widest mb-4"
-          style={{ color: "#94a3b8" }}
-        >
-          Quick Actions
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {NAV_CARDS.map((card) =>
-            card.disabled ? (
-              <div
-                key={card.label}
-                className="p-6"
-                style={{
-                  background: "#fff",
-                  borderRadius: "1rem",
-                  border: "1px solid #f1f5f9",
-                  opacity: 0.5,
-                  cursor: "not-allowed",
-                }}
-              >
-                <div
-                  className="w-11 h-11 flex items-center justify-center mb-4"
-                  style={{ background: card.accentBg, borderRadius: "0.75rem" }}
-                >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: "1.25rem", color: card.accentColor }}
-                  >
-                    {card.icon}
+    <AppShell>
+      <section className="space-y-8 pt-6 md:space-y-10 md:pt-10">
+        <header className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.7fr)] lg:items-start">
+          <div className="app-panel overflow-hidden rounded-[2rem] p-6 md:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="app-eyebrow">Next Event</p>
+                <h1 className="mt-2 text-[2rem] font-bold tracking-[-0.04em] text-app-text sm:text-[2.35rem] md:text-[3rem]">
+                  {nextMeeting?.theme || "Morning Toastmasters"}
+                </h1>
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-app-text-muted md:text-base">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary">
+                    <span className="material-symbols-outlined text-[1rem]">
+                      schedule
+                    </span>
+                    {nextMeeting
+                      ? `${formatMeetingDate(nextMeeting.date)} • ${getMeetingTime(nextMeeting.status)}`
+                      : "No upcoming meeting scheduled"}
                   </span>
-                </div>
-                <div className="font-semibold" style={{ color: "#334155" }}>
-                  {card.label}
-                </div>
-                <div className="text-xs mt-1" style={{ color: "#94a3b8" }}>
-                  {card.description}
+                  {nextMeeting?.location ? (
+                    <span className="inline-flex items-center gap-2 rounded-full bg-app-panel-soft px-3 py-1.5">
+                      <span className="material-symbols-outlined text-[1rem] text-app-text-subtle">
+                        location_on
+                      </span>
+                      {nextMeeting.location}
+                    </span>
+                  ) : null}
                 </div>
               </div>
-            ) : (
-              <Link
-                key={card.label}
-                to={card.to!}
-                className="group block p-6 transition-all duration-200"
-                style={{
-                  background: "#fff",
-                  borderRadius: "1rem",
-                  border: "1px solid #f1f5f9",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                  textDecoration: "none",
-                  color: "inherit",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.boxShadow =
-                    "0 8px 24px rgba(0,0,0,0.08)";
-                  (e.currentTarget as HTMLElement).style.transform =
-                    "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.boxShadow =
-                    "0 1px 3px rgba(0,0,0,0.04)";
-                  (e.currentTarget as HTMLElement).style.transform =
-                    "translateY(0)";
-                }}
+
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="rounded-full border border-app-border bg-app-panel-soft px-4 py-2.5 text-sm font-semibold text-app-text transition hover:border-primary/30 hover:text-primary"
               >
-                <div
-                  className="w-11 h-11 flex items-center justify-center mb-4"
-                  style={{ background: card.accentBg, borderRadius: "0.75rem" }}
-                >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: "1.25rem", color: card.accentColor }}
-                  >
-                    {card.icon}
+                Sign Out
+              </button>
+            </div>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard
+                icon="group"
+                label="Active Members"
+                value={activeMembers.length}
+                helper={`Roster size: ${totalMembers}`}
+              />
+              <MetricCard
+                icon="calendar_month"
+                label="Upcoming Meetings"
+                value={scheduledMeetings}
+                helper="Scheduled in the current cycle"
+              />
+              <MetricCard
+                icon="task_alt"
+                label="Completed Meetings"
+                value={completedMeetings}
+                helper={`${completionRate}% completion rate`}
+              />
+              <Link
+                to="/analytics"
+                className="app-panel rounded-[1.6rem] p-5 transition hover:border-primary/40 hover:-translate-y-0.5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <span className="material-symbols-outlined text-[1.15rem]">
+                      bar_chart
+                    </span>
+                  </div>
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-emerald-600">
+                    Reports
                   </span>
                 </div>
-                <div className="font-semibold" style={{ color: "#0f172a" }}>
-                  {card.label}
+                <p className="mt-5 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                  Club Insights
+                </p>
+                <div className="mt-2 text-[2rem] font-bold italic leading-none text-app-text">
+                  Ready
                 </div>
-                <div className="text-xs mt-1" style={{ color: "#64748b" }}>
-                  {card.description}
-                </div>
-                <div
-                  className="mt-4 flex items-center gap-1 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: "#3b82f6" }}
-                >
-                  Open
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: "0.875rem" }}
-                  >
-                    arrow_forward
-                  </span>
-                </div>
+                <p className="mt-2 text-sm text-app-text-muted">
+                  Open your white analytics dashboard
+                </p>
               </Link>
-            ),
+            </div>
+          </div>
+
+          <aside className="space-y-4">
+            <div className="app-panel rounded-[2rem] p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="app-eyebrow">Meeting Theme</p>
+                  <p className="mt-2 text-[1.65rem] font-semibold italic leading-tight text-app-text">
+                    {nextMeeting?.theme
+                      ? `"${nextMeeting.theme}"`
+                      : '"Plan the next meeting"'}
+                  </p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-[0_16px_30px_rgba(59,130,246,0.25)]">
+                  <span className="material-symbols-outlined text-[1.35rem]">
+                    campaign
+                  </span>
+                </div>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-app-text-muted">
+                {nextMeeting?.location || "Set a location on the meetings screen."}
+              </p>
+            </div>
+
+            <div className="app-panel rounded-[2rem] p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="app-eyebrow">Quick Actions</p>
+                  <h2 className="mt-2 text-xl font-semibold text-app-text">
+                    Keep the meeting moving
+                  </h2>
+                </div>
+              </div>
+              <div className="mt-5 grid gap-3">
+                <Link
+                  to="/meetings"
+                  className="rounded-[1.2rem] border border-app-border bg-app-panel-soft px-4 py-4 text-sm font-semibold text-app-text transition hover:border-primary/30 hover:text-primary"
+                >
+                  Open Meetings
+                </Link>
+                <Link
+                  to="/members"
+                  className="rounded-[1.2rem] border border-app-border bg-app-panel-soft px-4 py-4 text-sm font-semibold text-app-text transition hover:border-primary/30 hover:text-primary"
+                >
+                  View Members
+                </Link>
+                <Link
+                  to={nextMeeting ? `/meetings/${nextMeeting.id}` : "/meetings"}
+                  className="inline-flex items-center justify-center gap-2 rounded-[1.35rem] bg-primary px-5 py-4 text-base font-semibold text-white shadow-[0_18px_34px_rgba(59,130,246,0.25)] transition hover:bg-primary/90"
+                >
+                  <span className="material-symbols-outlined text-[1.2rem]">
+                    play_circle
+                  </span>
+                  {nextMeeting ? "Start Meeting" : "Create Meeting"}
+                </Link>
+              </div>
+            </div>
+          </aside>
+        </header>
+
+        <section className="space-y-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="app-eyebrow">Current Agenda</p>
+              <h2 className="mt-2 app-section-title">Today&apos;s flow</h2>
+            </div>
+            <Link
+              to="/meetings"
+              className="text-sm font-semibold text-primary transition hover:text-primary/80 md:text-base"
+            >
+              View Full
+            </Link>
+          </div>
+
+          {nextMeeting ? (
+            <div className="grid gap-4 xl:grid-cols-3">
+              <AgendaItem
+                time="07:30"
+                meridiem="AM"
+                title="Sergeant-at-Arms Opens"
+                subtitle={displayName}
+                active
+              />
+              <AgendaItem
+                time="07:45"
+                meridiem="AM"
+                title="Speaker Session"
+                subtitle="Add speeches from the meeting detail screen"
+              />
+              <AgendaItem
+                time="08:15"
+                meridiem="AM"
+                title="Role Signup Review"
+                subtitle={`Finalize open roles for ${nextMeeting.theme || "the meeting"}`}
+              />
+            </div>
+          ) : (
+            <div className="app-panel rounded-[1.75rem] p-6">
+              <p className="text-lg font-semibold text-app-text">No agenda yet</p>
+              <p className="mt-2 text-sm text-app-text-muted">
+                Create a meeting first, then assign roles and speeches from the
+                meeting detail page.
+              </p>
+            </div>
           )}
-        </div>
-      </main>
-    </div>
+        </section>
+
+        <section className="grid gap-4 pb-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="app-panel rounded-[2rem] p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="app-eyebrow">Club Snapshot</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-app-text">
+                  Momentum for this cycle
+                </h2>
+              </div>
+              {nextMeeting ? (
+                <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
+                  #{formatShortMeetingDate(nextMeeting.date)}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <div className="app-surface-muted rounded-[1.35rem] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                  RSVP+
+                </p>
+                <div className="mt-2 text-3xl font-bold text-app-text">
+                  {Math.min(activeMembers.length, 15)}
+                </div>
+                <p className="mt-1 text-sm text-emerald-600">+2 guests expected</p>
+              </div>
+              <div className="app-surface-muted rounded-[1.35rem] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                  Roles
+                </p>
+                <div className="mt-2 text-3xl font-bold text-app-text">Ready</div>
+                <p className="mt-1 text-sm text-app-text-muted">Click into meetings to assign</p>
+              </div>
+              <div className="app-surface-muted rounded-[1.35rem] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                  Progress
+                </p>
+                <div className="mt-2 text-3xl font-bold text-app-text">
+                  {completionRate}%
+                </div>
+                <p className="mt-1 text-sm text-app-text-muted">Meetings completed this season</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="app-panel rounded-[2rem] p-6">
+            <p className="app-eyebrow">Club Lead</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-app-text">
+              Hello, {displayName}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-app-text-muted">
+              Use this dashboard to stay on top of upcoming meetings, role
+              coverage, and club momentum without being stuck in a phone-sized layout.
+            </p>
+            <div className="mt-5 rounded-[1.35rem] bg-slate-50 p-4">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined rounded-full bg-primary/10 p-2 text-primary">
+                  insights
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-app-text">
+                    White dashboard migration complete
+                  </p>
+                  <p className="text-sm text-app-text-muted">
+                    Responsive layout now expands for tablet and desktop.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </AppShell>
   );
 }

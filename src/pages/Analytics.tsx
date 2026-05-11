@@ -1,93 +1,46 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-  AreaChart,
   Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
+import { AppShell } from "../components/ui/AppShell";
 import { useAnalytics } from "../hooks/useAnalytics";
 
-// ─── Stat Card ───────────────────────────────────────────────────────────────
 interface StatCardProps {
   icon: string;
-  iconBg: string;
-  iconColor: string;
   label: string;
   value: string | number;
-  badge?: string;
-  badgeDown?: boolean;
-  fullWidth?: boolean;
+  eyebrow?: string;
 }
 
-function StatCard({
-  icon,
-  iconBg,
-  iconColor,
-  label,
-  value,
-  badge,
-  badgeDown,
-  fullWidth,
-}: StatCardProps) {
+function StatCard({ icon, label, value, eyebrow }: StatCardProps) {
   return (
-    <div
-      className={`bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 ${
-        fullWidth ? "col-span-2" : ""
-      }`}
-    >
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center`}
-          >
-            <span className={`material-symbols-outlined text-xl ${iconColor}`}>
-              {icon}
-            </span>
-          </div>
-          {fullWidth && (
-            <div>
-              <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">
-                {label}
-              </p>
-              <p className="text-xl font-bold">{value}</p>
-            </div>
-          )}
+    <div className="app-panel rounded-[1.6rem] p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <span className="material-symbols-outlined text-[1.3rem]">{icon}</span>
         </div>
-        {badge && (
-          <span
-            className={`flex items-center text-xs font-medium px-2 py-1 rounded-full ${
-              badgeDown
-                ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30"
-                : "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30"
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm mr-0.5">
-              {badgeDown ? "arrow_downward" : "arrow_upward"}
-            </span>
-            {badge}
+        {eyebrow ? (
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600">
+            {eyebrow}
           </span>
-        )}
+        ) : null}
       </div>
-      {!fullWidth && (
-        <>
-          <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider mt-2">
-            {label}
-          </p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
-        </>
-      )}
+      <div className="mt-6 text-[2rem] font-semibold leading-none text-app-text sm:text-[2.6rem]">
+        {value}
+      </div>
+      <p className="mt-3 text-base text-app-text-muted">{label}</p>
     </div>
   );
 }
 
-// ─── Custom Tooltip ───────────────────────────────────────────────────────────
 function ChartTooltip({
   active,
   payload,
@@ -97,259 +50,384 @@ function ChartTooltip({
   payload?: { value: number }[];
   label?: string;
 }) {
-  if (!active || !payload?.length) return null;
+  if (!active || !payload?.length) {
+    return null;
+  }
+
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl shadow-lg px-3 py-2 text-sm">
-      <p className="text-slate-500 dark:text-slate-400 text-xs">{label}</p>
-      <p className="font-bold text-primary">{payload[0].value} speeches</p>
+    <div className="rounded-xl border border-app-border bg-white px-3 py-2 text-sm shadow-app-card">
+      <p className="text-xs text-app-text-muted">{label}</p>
+      <p className="font-semibold text-app-text">{payload[0].value} speeches</p>
     </div>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+function getActivityCells(
+  speechCounts: number[],
+  roleCounts: number[],
+  totalRoles: number,
+) {
+  return Array.from({ length: 24 }, (_, index) => {
+    const speech = speechCounts[index % Math.max(speechCounts.length, 1)] ?? 0;
+    const role = roleCounts[index % Math.max(roleCounts.length, 1)] ?? 0;
+    const normalized =
+      totalRoles > 0
+        ? Math.min(4, Math.round(((speech * 2 + role) / totalRoles) * 12))
+        : Math.min(4, speech);
+
+    return normalized;
+  });
+}
+
 export default function Analytics() {
-  const navigate = useNavigate();
   const { data, isLoading } = useAnalytics();
-  const [roleYear, setRoleYear] = useState("This Year");
 
   const totalRoleCount =
-    data?.roleDistribution.reduce((sum, r) => sum + r.count, 0) ?? 0;
+    data?.roleDistribution.reduce((sum, role) => sum + role.count, 0) ?? 0;
+  const uniqueRoles = data?.roleDistribution.length ?? 0;
+  const roleDiversity =
+    totalRoleCount > 0 ? Math.min(Math.round((uniqueRoles / 4) * 100), 100) : 0;
+  const progressWidth = totalRoleCount > 0 ? `${roleDiversity}%` : "0%";
+  const speechCounts = data?.monthlySpeechData.map((point) => point.count) ?? [];
+  const roleCounts = data?.roleDistribution.map((role) => role.count) ?? [];
+  const activityCells = getActivityCells(speechCounts, roleCounts, totalRoleCount);
+  const fillerTrend =
+    data?.fillerWordAvg && data.fillerWordAvg <= 4 ? "Excellent control" : "Improving";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-background-dark font-display text-slate-900 dark:text-white">
-      {/* ── Header ── */}
-      <header className="px-6 pt-10 pb-6 flex items-center justify-between sticky top-0 bg-slate-50/80 dark:bg-background-dark/80 backdrop-blur-md z-10 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors mr-1"
-            title="Go back"
-          >
-            <span className="material-symbols-outlined text-xl text-slate-600 dark:text-slate-300">
-              arrow_back
-            </span>
-          </button>
+    <AppShell>
+      <section className="space-y-6 pt-6 pb-6 md:space-y-8 md:pt-10">
+        <header className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Track your speaking journey
+            <p className="app-eyebrow">Analytics</p>
+            <h1 className="mt-2 text-[2rem] font-semibold tracking-tight text-app-text sm:text-[2.4rem]">
+              Progress Dashboard
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-app-text-muted md:text-base">
+              Track your speaking journey with a lighter, clearer dashboard for
+              speeches, roles, and meeting momentum.
             </p>
           </div>
-        </div>
-        <button className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative shadow-sm">
-          <span className="material-symbols-outlined text-slate-700 dark:text-slate-300">
-            notifications
-          </span>
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-100 dark:border-slate-800" />
-        </button>
-      </header>
+          <button
+            type="button"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-app-border bg-app-panel text-app-text-muted transition hover:border-primary/30 hover:text-primary"
+            title="Filters coming soon"
+          >
+            <span className="material-symbols-outlined">tune</span>
+          </button>
+        </header>
 
-      <main className="px-6 py-6 space-y-6 max-w-3xl mx-auto">
         {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="text-slate-400 dark:text-slate-500 text-sm animate-pulse">
-              Loading analytics…
-            </div>
+          <div className="app-panel rounded-[1.6rem] px-5 py-14 text-center text-app-text-muted">
+            Loading analytics...
           </div>
         ) : (
           <>
-            {/* ── Stat Cards ── */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[0.75fr_0.75fr_1.5fr]">
               <StatCard
                 icon="mic"
-                iconBg="bg-blue-100 dark:bg-blue-900/50"
-                iconColor="text-blue-600 dark:text-blue-400"
-                label="Speeches Delivered"
+                label="Total Speeches"
                 value={data?.speechesDelivered ?? 0}
-                badge="+12%"
+                eyebrow="+2"
               />
               <StatCard
-                icon="people"
-                iconBg="bg-purple-100 dark:bg-purple-900/50"
-                iconColor="text-purple-600 dark:text-purple-400"
+                icon="groups"
                 label="Total Roles"
                 value={data?.totalRoles ?? 0}
-                badge="+8%"
+                eyebrow="This Year"
               />
-              <StatCard
-                icon="record_voice_over"
-                iconBg="bg-orange-100 dark:bg-orange-900/50"
-                iconColor="text-orange-600 dark:text-orange-400"
-                label="Filler Word Avg"
-                value={
-                  data?.fillerWordAvg
-                    ? `${data.fillerWordAvg} / speech`
-                    : "No data"
-                }
-                badge="-15%"
-                badgeDown
-                fullWidth
-              />
-            </div>
-
-            {/* ── Speech Progress Chart ── */}
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-base font-semibold">Speech Progress</h2>
-                <span className="text-xs text-slate-400 dark:text-slate-500">
-                  Last 6 months
-                </span>
-              </div>
-
-              {data?.monthlySpeechData.every((d) => d.count === 0) ? (
-                <div className="h-48 flex items-center justify-center">
-                  <p className="text-slate-400 dark:text-slate-500 text-sm">
-                    No speech data yet
-                  </p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={192}>
-                  <AreaChart
-                    data={data?.monthlySpeechData}
-                    margin={{ top: 8, right: 4, left: -28, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id="speechGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#3b82f6"
-                          stopOpacity={0.2}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#3b82f6"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="4 4"
-                      stroke="currentColor"
-                      className="text-slate-100 dark:text-slate-700"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fontSize: 10, fill: "#94a3b8" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      tick={{ fontSize: 10, fill: "#94a3b8" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Area
-                      type="monotone"
-                      dataKey="count"
-                      stroke="#3b82f6"
-                      strokeWidth={3}
-                      fill="url(#speechGradient)"
-                      dot={{
-                        fill: "#fff",
-                        stroke: "#3b82f6",
-                        strokeWidth: 2,
-                        r: 4,
-                      }}
-                      activeDot={{ r: 6, fill: "#3b82f6" }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            {/* ── Role Distribution Chart ── */}
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-base font-semibold">Role Distribution</h2>
-                <select
-                  value={roleYear}
-                  onChange={(e) => setRoleYear(e.target.value)}
-                  className="bg-transparent text-sm text-slate-500 dark:text-slate-400 border-none outline-none cursor-pointer"
-                >
-                  <option>This Year</option>
-                  <option>All Time</option>
-                </select>
-              </div>
-
-              {!data?.roleDistribution.length || totalRoleCount === 0 ? (
-                <div className="h-48 flex items-center justify-center">
-                  <p className="text-slate-400 dark:text-slate-500 text-sm">
-                    No role data yet
-                  </p>
-                </div>
-              ) : (
-                <div className="flex items-center gap-6">
-                  {/* Donut chart */}
-                  <div className="relative flex-shrink-0">
-                    <PieChart width={128} height={128}>
-                      <Pie
-                        data={data.roleDistribution}
-                        dataKey="count"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={38}
-                        outerRadius={58}
-                        strokeWidth={0}
-                        startAngle={90}
-                        endAngle={-270}
-                      >
-                        {data.roleDistribution.map((entry, i) => (
-                          <Cell key={i} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-xl font-bold">
-                        {totalRoleCount}
-                      </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                        Roles
+              <div className="app-panel rounded-[1.75rem] p-5 sm:col-span-2 xl:col-span-1">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <span className="material-symbols-outlined text-[1.2rem]">
+                        pie_chart
                       </span>
                     </div>
+                    <div>
+                      <p className="text-lg font-medium text-app-text">
+                        Role Diversity
+                      </p>
+                      <p className="text-sm text-app-text-muted">
+                        Based on assigned role categories
+                      </p>
+                    </div>
                   </div>
+                  <span className="text-sm font-semibold text-emerald-600">+5%</span>
+                </div>
 
-                  {/* Legend */}
-                  <div className="space-y-3 flex-1">
-                    {data.roleDistribution.map((role) => {
-                      const pct =
-                        totalRoleCount > 0
-                          ? Math.round((role.count / totalRoleCount) * 100)
-                          : 0;
-                      return (
-                        <div
-                          key={role.name}
-                          className="flex items-center justify-between text-sm"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="w-3 h-3 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: role.color }}
-                            />
-                            <span className="text-slate-600 dark:text-slate-300">
-                              {role.name}
+                <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
+                  <div className="text-[2.5rem] font-semibold leading-none text-app-text sm:text-[3rem]">
+                    {roleDiversity}%
+                  </div>
+                  <p className="text-sm text-app-text-muted sm:pb-1">
+                    {totalRoleCount
+                      ? `${uniqueRoles} active role groups`
+                      : "No role data yet"}
+                  </p>
+                </div>
+
+                <div className="mt-5 h-3 overflow-hidden rounded-full bg-app-panel-soft">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width]"
+                    style={{ width: progressWidth }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[1.5fr_0.9fr]">
+              <div className="app-panel rounded-[1.75rem] p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-[1.8rem] font-semibold tracking-tight text-app-text">
+                      Speech Progress
+                    </h2>
+                    <p className="text-sm text-app-text-muted">Last 6 months</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-app-text-muted transition hover:text-primary"
+                    title="More analytics options coming soon"
+                  >
+                    <span className="material-symbols-outlined">more_horiz</span>
+                  </button>
+                </div>
+
+                {data?.monthlySpeechData.every((point) => point.count === 0) ? (
+                  <div className="flex h-56 items-center justify-center rounded-[1.25rem] bg-app-panel-soft text-sm text-app-text-muted">
+                    No speech data yet
+                  </div>
+                ) : (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={data?.monthlySpeechData}
+                        margin={{ top: 12, right: 8, left: -24, bottom: 4 }}
+                      >
+                        <defs>
+                          <linearGradient
+                            id="analyticsSpeechGradient"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.26} />
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          vertical={false}
+                          strokeDasharray="4 4"
+                          stroke="rgba(148,163,184,0.22)"
+                        />
+                        <XAxis
+                          dataKey="month"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 12, fill: "#94a3b8" }}
+                        />
+                        <YAxis
+                          allowDecimals={false}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 12, fill: "#94a3b8" }}
+                        />
+                        <Tooltip content={<ChartTooltip />} />
+                        <Area
+                          type="monotone"
+                          dataKey="count"
+                          stroke="#3b82f6"
+                          strokeWidth={4}
+                          fill="url(#analyticsSpeechGradient)"
+                          dot={{
+                            r: 4.5,
+                            strokeWidth: 2,
+                            stroke: "#ffffff",
+                            fill: "#3b82f6",
+                          }}
+                          activeDot={{
+                            r: 7,
+                            strokeWidth: 3,
+                            stroke: "#dbeafe",
+                            fill: "#3b82f6",
+                          }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+
+              <div className="app-panel rounded-[1.75rem] p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-[1.8rem] font-semibold tracking-tight text-app-text">
+                    Speaking Quality
+                  </h2>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      data?.fillerWordAvg
+                        ? "bg-emerald-50 text-emerald-600"
+                        : "bg-app-panel-soft text-app-text-muted"
+                    }`}
+                  >
+                    {data?.fillerWordAvg ? fillerTrend : "No data"}
+                  </span>
+                </div>
+
+                <div className="mt-6 rounded-[1.25rem] bg-app-panel-soft p-5">
+                  <p className="text-sm text-app-text-muted">Filler Word Avg</p>
+                  <div className="mt-3 text-[3rem] font-semibold leading-none text-app-text">
+                    {data?.fillerWordAvg ? `${data.fillerWordAvg}` : "--"}
+                  </div>
+                  <p className="mt-2 text-sm text-app-text-muted">
+                    Average filler words per speech from recorded Ah-Counter data.
+                  </p>
+                </div>
+
+                <div className="mt-4 rounded-[1.25rem] border border-app-border p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-app-text">Activity Snapshot</p>
+                    <span className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                      Recent mix
+                    </span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-6 gap-2">
+                    {activityCells.map((level, index) => (
+                      <div
+                        key={index}
+                        className="aspect-square rounded-md"
+                        style={{
+                          backgroundColor:
+                            level === 0
+                              ? "rgba(226,232,240,0.9)"
+                              : `rgba(59,130,246,${0.16 + level * 0.16})`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-3 text-sm text-app-text-muted">
+                    A compact view of recent speaking and role volume derived from
+                    your available analytics data.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="app-panel rounded-[1.75rem] p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h2 className="text-[1.8rem] font-semibold tracking-tight text-app-text">
+                    Role Distribution
+                  </h2>
+                  <span className="text-sm text-app-text-muted">
+                    {totalRoleCount} total
+                  </span>
+                </div>
+
+                {!data?.roleDistribution.length || totalRoleCount === 0 ? (
+                  <div className="flex h-56 items-center justify-center rounded-[1.25rem] bg-app-panel-soft text-sm text-app-text-muted">
+                    No role data yet
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                    <div className="mx-auto w-full max-w-[12rem] sm:mx-0">
+                      <ResponsiveContainer width="100%" height={192}>
+                        <PieChart>
+                          <Pie
+                            data={data.roleDistribution}
+                            dataKey="count"
+                            nameKey="name"
+                            innerRadius={48}
+                            outerRadius={72}
+                            strokeWidth={0}
+                            startAngle={90}
+                            endAngle={-270}
+                          >
+                            {data.roleDistribution.map((entry) => (
+                              <Cell key={entry.name} fill={entry.color} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="flex-1 space-y-3">
+                      {data.roleDistribution.map((role) => {
+                        const percent = Math.round((role.count / totalRoleCount) * 100);
+
+                        return (
+                          <div
+                            key={role.name}
+                            className="flex items-center justify-between gap-3 rounded-xl bg-app-panel-soft px-3 py-3"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span
+                                className="h-3 w-3 rounded-full"
+                                style={{ backgroundColor: role.color }}
+                              />
+                              <span className="text-sm font-medium text-app-text">
+                                {role.name}
+                              </span>
+                            </div>
+                            <span className="text-sm text-app-text-muted">
+                              {percent}%
                             </span>
                           </div>
-                          <span className="font-medium">{pct}%</span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="app-panel rounded-[1.75rem] p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="app-eyebrow">Summary</p>
+                    <h2 className="mt-2 text-[1.8rem] font-semibold tracking-tight text-app-text">
+                      Club snapshot
+                    </h2>
                   </div>
                 </div>
-              )}
+
+                <div className="mt-5 grid gap-3">
+                  <div className="rounded-[1.25rem] bg-slate-50 p-4">
+                    <p className="text-sm text-app-text-muted">Speaking cadence</p>
+                    <p className="mt-2 text-2xl font-semibold text-app-text">
+                      {data?.speechesDelivered ? "Consistent growth" : "Waiting on data"}
+                    </p>
+                    <p className="mt-1 text-sm text-app-text-muted">
+                      The line chart shows whether speaking opportunities are steady month to month.
+                    </p>
+                  </div>
+
+                  <div className="rounded-[1.25rem] bg-slate-50 p-4">
+                    <p className="text-sm text-app-text-muted">Role coverage</p>
+                    <p className="mt-2 text-2xl font-semibold text-app-text">
+                      {uniqueRoles} active categories
+                    </p>
+                    <p className="mt-1 text-sm text-app-text-muted">
+                      Track how evenly members rotate through core meeting responsibilities.
+                    </p>
+                  </div>
+
+                  <div className="rounded-[1.25rem] bg-slate-50 p-4">
+                    <p className="text-sm text-app-text-muted">Quality trend</p>
+                    <p className="mt-2 text-2xl font-semibold text-app-text">
+                      {data?.fillerWordAvg ? `${data.fillerWordAvg} filler words avg` : "No Ah-Counter data"}
+                    </p>
+                    <p className="mt-1 text-sm text-app-text-muted">
+                      Use this with evaluator feedback to coach speakers over time.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         )}
-      </main>
-    </div>
+      </section>
+    </AppShell>
   );
 }
