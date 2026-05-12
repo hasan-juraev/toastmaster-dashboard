@@ -67,6 +67,7 @@ export interface AhCounterReport {
   speaker_id: string | null;
   ah_count: number;
   notes: string | null;
+  created_at?: string;
 }
 
 export interface EvaluatorReport {

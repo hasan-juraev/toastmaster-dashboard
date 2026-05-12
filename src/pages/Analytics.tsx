@@ -109,7 +109,11 @@ export default function Analytics() {
                 icon="mic"
                 label="Total Speeches"
                 value={data?.speechesDelivered ?? 0}
-                eyebrow="Completed"
+                eyebrow={
+                  data?.totalSpeechesPlanned
+                    ? `${data.speakerCompletionRate}% complete`
+                    : "Completed"
+                }
               />
               <StatCard
                 icon="groups"
@@ -365,6 +369,16 @@ export default function Analytics() {
 
                 <div className="mt-5 grid gap-3">
                   <div className="rounded-[1.25rem] bg-slate-50 p-4">
+                    <p className="text-sm text-app-text-muted">Ah-Counter</p>
+                    <p className="mt-2 text-2xl font-semibold text-app-text">
+                      {data?.fillerWordAvg ?? 0} fillers avg
+                    </p>
+                    <p className="mt-1 text-sm text-app-text-muted">
+                      {data?.fillerReportsLogged ?? 0} reports logged across speakers
+                    </p>
+                  </div>
+
+                  <div className="rounded-[1.25rem] bg-slate-50 p-4">
                     <p className="text-sm text-app-text-muted">Grammarian</p>
                     <p className="mt-2 text-2xl font-semibold text-app-text">
                       {data?.grammarianStats.avgErrors ?? 0} errors avg
@@ -372,6 +386,16 @@ export default function Analytics() {
                     <p className="mt-1 text-sm text-app-text-muted">
                       {data?.grammarianStats.notablePhrasesAvg ?? 0} notable phrases,
                       score {data?.grammarianStats.avgScore ?? 0}/10
+                    </p>
+                  </div>
+
+                  <div className="rounded-[1.25rem] bg-slate-50 p-4">
+                    <p className="text-sm text-app-text-muted">Speaker coverage</p>
+                    <p className="mt-2 text-2xl font-semibold text-app-text">
+                      {data?.speakerCompletionRate ?? 0}% complete
+                    </p>
+                    <p className="mt-1 text-sm text-app-text-muted">
+                      {data?.speechesDelivered ?? 0} of {data?.totalSpeechesPlanned ?? 0} planned speeches delivered
                     </p>
                   </div>
 

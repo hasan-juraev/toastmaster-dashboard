@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import type {
+  AhCounterReport,
   EvaluatorReport,
   GrammarianReport,
   TimerReport,
 } from "../types/database";
 
 interface MeetingRoleReports {
+  ahCounterReports: AhCounterReport[];
   grammarianReports: GrammarianReport[];
   evaluatorReports: EvaluatorReport[];
   timerReports: TimerReport[];
@@ -17,20 +19,24 @@ export function useMeetingRoleReports(meetingId: string) {
     queryKey: ["role_reports", meetingId],
     queryFn: async () => {
       const [
+        { data: ahCounterReports, error: ahCounterError },
         { data: grammarianReports, error: grammarianError },
         { data: evaluatorReports, error: evaluatorError },
         { data: timerReports, error: timerError },
       ] = await Promise.all([
+        supabase.from("ah_counter_reports").select("*").eq("meeting_id", meetingId),
         supabase.from("grammarian_reports").select("*").eq("meeting_id", meetingId),
         supabase.from("evaluator_reports").select("*").eq("meeting_id", meetingId),
         supabase.from("timer_reports").select("*").eq("meeting_id", meetingId),
       ]);
 
+      if (ahCounterError) throw ahCounterError;
       if (grammarianError) throw grammarianError;
       if (evaluatorError) throw evaluatorError;
       if (timerError) throw timerError;
 
       return {
+        ahCounterReports: (ahCounterReports ?? []) as AhCounterReport[],
         grammarianReports: (grammarianReports ?? []) as GrammarianReport[],
         evaluatorReports: (evaluatorReports ?? []) as EvaluatorReport[],
         timerReports: (timerReports ?? []) as TimerReport[],
@@ -63,6 +69,30 @@ export function useUpsertGrammarianReport() {
 
       if (error) throw error;
       return data as GrammarianReport;
+    },
+    onSuccess: (_data, variables) => {
+      if (variables.meeting_id) {
+        invalidateRoleReportQueries(queryClient, variables.meeting_id);
+      }
+    },
+  });
+}
+
+export function useUpsertAhCounterReport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      report: Omit<AhCounterReport, "id" | "created_at"> & { id?: string },
+    ) => {
+      const { data, error } = await supabase
+        .from("ah_counter_reports")
+        .upsert(report)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as AhCounterReport;
     },
     onSuccess: (_data, variables) => {
       if (variables.meeting_id) {

@@ -8,11 +8,13 @@ import {
 } from "../../hooks/useRoles";
 import {
   useMeetingRoleReports,
+  useUpsertAhCounterReport,
   useUpsertEvaluatorReport,
   useUpsertGrammarianReport,
   useUpsertTimerReport,
 } from "../../hooks/useRoleReports";
 import type {
+  AhCounterReport,
   EvaluatorReport,
   GrammarianReport,
   MeetingRole,
@@ -26,6 +28,8 @@ interface SpeechOption {
   title: string | null;
   manual_time: string | null;
   completed: boolean;
+  speaker_id: string | null;
+  evaluator_id: string | null;
 }
 
 interface RoleAssignmentProps {
@@ -47,6 +51,22 @@ interface RoleWorkflowDraft {
   improvementNotes: string;
   targetSeconds: string;
   actualSeconds: string;
+}
+
+interface AhCounterSpeakerDraft {
+  ahCount: string;
+  notes: string;
+}
+
+interface SpeakerSummary {
+  key: string;
+  speakerId: string | null;
+  speakerName: string;
+  titles: string[];
+  completedCount: number;
+  totalCount: number;
+  evaluatorAssignedCount: number;
+  plannedTimes: string[];
 }
 
 const STATUS_OPTIONS: Array<{ value: MeetingRoleStatus; label: string }> = [
@@ -118,6 +138,17 @@ function isFacilitatorRole(roleName: string) {
   return roleName === "Toastmaster" || roleName === "General Evaluator";
 }
 
+function isCustomRole(roleName: string) {
+  return (
+    isFacilitatorRole(roleName) ||
+    roleName === "Grammarian" ||
+    roleName === "Evaluator" ||
+    roleName === "Timer" ||
+    roleName === "Ah-Counter" ||
+    roleName === "Speaker"
+  );
+}
+
 function getStatusBadgeClasses(status: MeetingRoleStatus | "unassigned") {
   switch (status) {
     case "completed":
@@ -133,6 +164,13 @@ function getStatusBadgeClasses(status: MeetingRoleStatus | "unassigned") {
   }
 }
 
+function buildAhCounterDraft(report?: AhCounterReport): AhCounterSpeakerDraft {
+  return {
+    ahCount: toInputValue(report?.ah_count),
+    notes: report?.notes ?? "",
+  };
+}
+
 export default function RoleAssignment({
   meetingId,
   speeches,
@@ -145,18 +183,38 @@ export default function RoleAssignment({
     useMeetingRoleReports(meetingId);
   const upsertRole = useUpsertMeetingRole();
   const deleteRole = useDeleteMeetingRole();
+  const upsertAhCounterReport = useUpsertAhCounterReport();
   const upsertGrammarianReport = useUpsertGrammarianReport();
   const upsertEvaluatorReport = useUpsertEvaluatorReport();
   const upsertTimerReport = useUpsertTimerReport();
   const [drafts, setDrafts] = useState<Record<string, RoleWorkflowDraft>>({});
+  const [ahCounterDrafts, setAhCounterDrafts] = useState<
+    Record<string, AhCounterSpeakerDraft>
+  >({});
   const [error, setError] = useState<string | null>(null);
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [savedRoleId, setSavedRoleId] = useState<string | null>(null);
 
+  const memberNameLookup = useMemo(
+    () =>
+      Object.fromEntries((members ?? []).map((member) => [member.id, member.name])),
+    [members],
+  );
   const meetingRoleMap = useMemo(
     () =>
-      Object.fromEntries((meetingRoles ?? []).map((assignment) => [assignment.role_id, assignment])),
+      Object.fromEntries(
+        (meetingRoles ?? []).map((assignment) => [assignment.role_id, assignment]),
+      ),
     [meetingRoles],
+  );
+  const ahCounterReportMap = useMemo(
+    () =>
+      Object.fromEntries(
+        (roleReports?.ahCounterReports ?? [])
+          .filter((report) => report.speaker_id)
+          .map((report) => [report.speaker_id as string, report]),
+      ),
+    [roleReports?.ahCounterReports],
   );
   const grammarianReportMap = useMemo(
     () =>
@@ -185,6 +243,41 @@ export default function RoleAssignment({
       ),
     [roleReports?.timerReports],
   );
+  const speakerSummaries = useMemo<SpeakerSummary[]>(() => {
+    const summaries = new Map<string, SpeakerSummary>();
+
+    speeches.forEach((speech, index) => {
+      const key = speech.speaker_id ?? `speech-${index}`;
+      const current = summaries.get(key) ?? {
+        key,
+        speakerId: speech.speaker_id,
+        speakerName: speech.speaker_id
+          ? memberNameLookup[speech.speaker_id] ?? "Unknown speaker"
+          : `Speaker slot ${index + 1}`,
+        titles: [],
+        completedCount: 0,
+        totalCount: 0,
+        evaluatorAssignedCount: 0,
+        plannedTimes: [],
+      };
+
+      current.totalCount += 1;
+      if (speech.completed) {
+        current.completedCount += 1;
+      }
+      if (speech.evaluator_id) {
+        current.evaluatorAssignedCount += 1;
+      }
+      current.titles.push(speech.title || `Speech ${index + 1}`);
+      if (speech.manual_time) {
+        current.plannedTimes.push(speech.manual_time);
+      }
+
+      summaries.set(key, current);
+    });
+
+    return Array.from(summaries.values());
+  }, [memberNameLookup, speeches]);
 
   useEffect(() => {
     if (!roles?.length) {
@@ -223,6 +316,21 @@ export default function RoleAssignment({
     timerReportMap,
   ]);
 
+  useEffect(() => {
+    setAhCounterDrafts(
+      Object.fromEntries(
+        speakerSummaries
+          .filter((summary) => summary.speakerId)
+          .map((summary) => [
+            summary.key,
+            buildAhCounterDraft(
+              summary.speakerId ? ahCounterReportMap[summary.speakerId] : undefined,
+            ),
+          ]),
+      ),
+    );
+  }, [ahCounterReportMap, speakerSummaries]);
+
   if (loadingRoles || loadingMembers || loadingMeetingRoles || loadingReports) {
     return (
       <div className="app-panel rounded-[1.5rem] p-6 text-center text-app-text-muted">
@@ -253,6 +361,20 @@ export default function RoleAssignment({
         [roleId]: nextDraft,
       };
     });
+  };
+
+  const updateAhCounterDraft = (
+    speakerKey: string,
+    updates: Partial<AhCounterSpeakerDraft>,
+  ) => {
+    setSavedRoleId(null);
+    setAhCounterDrafts((current) => ({
+      ...current,
+      [speakerKey]: {
+        ...(current[speakerKey] ?? { ahCount: "", notes: "" }),
+        ...updates,
+      },
+    }));
   };
 
   const handleSave = async (role: Role) => {
@@ -297,6 +419,36 @@ export default function RoleAssignment({
           ? parseOptionalNumber(draft.facilitatorScore)
           : null,
       });
+
+      if (role.name === "Ah-Counter") {
+        await Promise.all(
+          speakerSummaries
+            .filter((summary) => summary.speakerId)
+            .map(async (summary) => {
+              const reportDraft = ahCounterDrafts[summary.key];
+              const existingReport = summary.speakerId
+                ? ahCounterReportMap[summary.speakerId]
+                : undefined;
+
+              if (
+                !reportDraft ||
+                (parseOptionalNumber(reportDraft.ahCount) == null &&
+                  !reportDraft.notes.trim() &&
+                  !existingReport)
+              ) {
+                return;
+              }
+
+              await upsertAhCounterReport.mutateAsync({
+                ...(existingReport?.id ? { id: existingReport.id } : {}),
+                meeting_id: meetingId,
+                speaker_id: summary.speakerId ?? null,
+                ah_count: parseOptionalNumber(reportDraft.ahCount) ?? 0,
+                notes: reportDraft.notes.trim() || null,
+              });
+            }),
+        );
+      }
 
       if (role.name === "Grammarian") {
         await upsertGrammarianReport.mutateAsync({
@@ -378,6 +530,8 @@ export default function RoleAssignment({
               ? (parseOptionalNumber(draft?.actualSeconds ?? "") ?? 0) -
                 (parseOptionalNumber(draft?.targetSeconds ?? "") ?? 0)
               : null;
+          const speakerRoleCompleted =
+            speeches.length > 0 && speeches.every((speech) => speech.completed);
 
           return (
             <article key={role.id} className="app-panel rounded-[1.6rem] p-5">
@@ -388,6 +542,14 @@ export default function RoleAssignment({
                     <p className="mt-1 text-sm text-app-text-muted">
                       Completed on{" "}
                       {new Date(assignment.completed_at).toLocaleDateString()}
+                    </p>
+                  ) : role.name === "Speaker" ? (
+                    <p className="mt-1 text-sm text-app-text-muted">
+                      Track speech readiness and evaluator coverage for this meeting.
+                    </p>
+                  ) : role.name === "Ah-Counter" ? (
+                    <p className="mt-1 text-sm text-app-text-muted">
+                      Capture filler-word totals per speaker as the meeting unfolds.
                     </p>
                   ) : (
                     <p className="mt-1 text-sm text-app-text-muted">
@@ -450,6 +612,179 @@ export default function RoleAssignment({
                   </select>
                 </label>
               </div>
+
+              {role.name === "Speaker" ? (
+                <>
+                  <div className="mt-4 rounded-[1.25rem] bg-app-panel-soft p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-app-text">
+                          Speech lineup
+                        </p>
+                        <p className="mt-1 text-sm text-app-text-muted">
+                          {speeches.length
+                            ? `${speeches.filter((speech) => speech.completed).length}/${speeches.length} speeches completed`
+                            : "No speeches linked to this meeting yet"}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${
+                          speakerRoleCompleted && speeches.length > 0
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-app-panel-soft text-app-text-muted"
+                        }`}
+                      >
+                        {speakerRoleCompleted && speeches.length > 0
+                          ? "lineup complete"
+                          : "in planning"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {speakerSummaries.length ? (
+                    <div className="mt-4 grid gap-3">
+                      {speakerSummaries.map((summary) => (
+                        <div
+                          key={summary.key}
+                          className="rounded-[1.2rem] border border-app-border bg-white/70 px-4 py-4"
+                        >
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-app-text">
+                                {summary.speakerName}
+                              </p>
+                              <p className="mt-1 text-sm text-app-text-muted">
+                                {summary.titles.join(", ")}
+                              </p>
+                              {summary.plannedTimes.length ? (
+                                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-app-text-subtle">
+                                  {summary.plannedTimes.join(" / ")}
+                                </p>
+                              ) : null}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="rounded-xl bg-app-panel-soft px-3 py-2 text-center">
+                                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                                  Done
+                                </p>
+                                <p className="mt-1 text-lg font-semibold text-app-text">
+                                  {summary.completedCount}/{summary.totalCount}
+                                </p>
+                              </div>
+                              <div className="rounded-xl bg-app-panel-soft px-3 py-2 text-center">
+                                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                                  Evaluators
+                                </p>
+                                <p className="mt-1 text-lg font-semibold text-app-text">
+                                  {summary.evaluatorAssignedCount}/{summary.totalCount}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <label className="mt-4 block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                      Speaker Notes
+                    </span>
+                    <textarea
+                      rows={3}
+                      className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
+                      value={draft?.notes ?? ""}
+                      onChange={(event) =>
+                        updateDraft(role.id, { notes: event.target.value })
+                      }
+                    />
+                  </label>
+                </>
+              ) : null}
+
+              {role.name === "Ah-Counter" ? (
+                <>
+                  {speakerSummaries.length ? (
+                    <div className="mt-4 grid gap-3">
+                      {speakerSummaries.map((summary) => {
+                        const reportDraft = ahCounterDrafts[summary.key] ?? {
+                          ahCount: "",
+                          notes: "",
+                        };
+
+                        return (
+                          <div
+                            key={summary.key}
+                            className="rounded-[1.2rem] border border-app-border bg-white/70 px-4 py-4"
+                          >
+                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                              <div className="md:max-w-[14rem]">
+                                <p className="text-sm font-semibold text-app-text">
+                                  {summary.speakerName}
+                                </p>
+                                <p className="mt-1 text-sm text-app-text-muted">
+                                  {summary.titles.join(", ")}
+                                </p>
+                              </div>
+                              <div className="grid flex-1 gap-4 md:grid-cols-[0.35fr_1fr]">
+                                <label className="block">
+                                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                                    Total Fillers
+                                  </span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
+                                    value={reportDraft.ahCount}
+                                    onChange={(event) =>
+                                      updateAhCounterDraft(summary.key, {
+                                        ahCount: event.target.value,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label className="block">
+                                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                                    Breakdown Notes
+                                  </span>
+                                  <textarea
+                                    rows={2}
+                                    className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
+                                    value={reportDraft.notes}
+                                    onChange={(event) =>
+                                      updateAhCounterDraft(summary.key, {
+                                        notes: event.target.value,
+                                      })
+                                    }
+                                  />
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="mt-4 rounded-[1.25rem] border border-dashed border-app-border bg-app-panel-soft p-5 text-sm text-app-text-muted">
+                      Add speakers to this meeting first. Ah-Counter entries are tracked per speaker.
+                    </div>
+                  )}
+
+                  <label className="mt-4 block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                      Role Notes
+                    </span>
+                    <textarea
+                      rows={3}
+                      className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
+                      value={draft?.notes ?? ""}
+                      onChange={(event) =>
+                        updateDraft(role.id, { notes: event.target.value })
+                      }
+                    />
+                  </label>
+                </>
+              ) : null}
 
               {isFacilitatorRole(role.name) ? (
                 <div className="mt-4 grid gap-4 md:grid-cols-[0.4fr_1fr]">
@@ -568,9 +903,9 @@ export default function RoleAssignment({
                         }
                       >
                         <option value="">- Select Speech -</option>
-                        {speeches.map((speech) => (
+                        {speeches.map((speech, index) => (
                           <option key={speech.id} value={speech.id}>
-                            {speech.title || "Untitled Speech"}
+                            {speech.title || `Speech ${index + 1}`}
                             {speech.manual_time ? ` • ${speech.manual_time}` : ""}
                           </option>
                         ))}
@@ -687,30 +1022,36 @@ export default function RoleAssignment({
                 </>
               ) : null}
 
-              {!isFacilitatorRole(role.name) &&
-              role.name !== "Grammarian" &&
-              role.name !== "Evaluator" &&
-              role.name !== "Timer" ? (
-                <label className="mt-4 block">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
-                    Notes
-                  </span>
-                  <textarea
-                    rows={3}
-                    className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
-                    value={draft?.notes ?? ""}
-                    onChange={(event) =>
-                      updateDraft(role.id, { notes: event.target.value })
-                    }
-                  />
-                </label>
+              {!isCustomRole(role.name) ? (
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-[1.25rem] border border-dashed border-app-border bg-app-panel-soft p-4 text-sm text-app-text-muted">
+                    This role does not have a dedicated analytics template yet, but it still participates in assignment and completion tracking.
+                  </div>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                      Notes
+                    </span>
+                    <textarea
+                      rows={3}
+                      className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
+                      value={draft?.notes ?? ""}
+                      onChange={(event) =>
+                        updateDraft(role.id, { notes: event.target.value })
+                      }
+                    />
+                  </label>
+                </div>
               ) : null}
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-app-text-muted">
                   {savedRoleId === role.id
                     ? "Saved to meeting workflow."
-                    : "Keep scores lightweight and consistent so trends stay meaningful."}
+                    : role.name === "Ah-Counter"
+                      ? "Use notes for breakdowns like ah, oh, and uhm until those are modeled separately."
+                      : role.name === "Speaker"
+                        ? "Speaker progress comes from the meeting's speech records."
+                        : "Keep scores lightweight and consistent so trends stay meaningful."}
                 </p>
                 <button
                   type="button"

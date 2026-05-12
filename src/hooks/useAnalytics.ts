@@ -14,8 +14,11 @@ export interface RoleDistribution {
 
 export interface AnalyticsData {
   speechesDelivered: number;
+  totalSpeechesPlanned: number;
+  speakerCompletionRate: number;
   totalRoles: number;
   fillerWordAvg: number;
+  fillerReportsLogged: number;
   roleCompletionRate: number;
   monthlySpeechData: MonthlySpeeches[];
   roleDistribution: RoleDistribution[];
@@ -103,6 +106,7 @@ export function useAnalytics() {
     queryFn: async () => {
       const [
         { data: speeches, error: speechErr },
+        { data: allSpeeches, error: allSpeechesErr },
         { data: meetingRoles, error: rolesErr },
         { data: ahReports, error: ahErr },
         { data: members, error: membersErr },
@@ -114,6 +118,7 @@ export function useAnalytics() {
           .from("speeches")
           .select("id, completed, meeting_id, meetings(date)")
           .eq("completed", true),
+        supabase.from("speeches").select("id, completed"),
         supabase
           .from("meeting_roles")
           .select("id, role_id, member_id, status, score, roles(name), members(name)"),
@@ -125,6 +130,7 @@ export function useAnalytics() {
       ]);
 
       if (speechErr) throw speechErr;
+      if (allSpeechesErr) throw allSpeechesErr;
       if (rolesErr) throw rolesErr;
       if (ahErr) throw ahErr;
       if (membersErr) throw membersErr;
@@ -133,8 +139,14 @@ export function useAnalytics() {
       if (timerErr) throw timerErr;
 
       const speechesDelivered = speeches?.length ?? 0;
+      const totalSpeechesPlanned = allSpeeches?.length ?? 0;
+      const speakerCompletionRate =
+        totalSpeechesPlanned > 0
+          ? Math.round((speechesDelivered / totalSpeechesPlanned) * 100)
+          : 0;
       const totalRoles = meetingRoles?.length ?? 0;
       const fillerWordAvg = average((ahReports ?? []).map((report) => report.ah_count ?? 0));
+      const fillerReportsLogged = ahReports?.length ?? 0;
 
       const now = new Date();
       const monthlyCounts: Record<string, number> = {};
@@ -307,8 +319,11 @@ export function useAnalytics() {
 
       return {
         speechesDelivered,
+        totalSpeechesPlanned,
+        speakerCompletionRate,
         totalRoles,
         fillerWordAvg,
+        fillerReportsLogged,
         roleCompletionRate,
         monthlySpeechData,
         roleDistribution,

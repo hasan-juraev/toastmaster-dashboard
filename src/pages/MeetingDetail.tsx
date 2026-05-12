@@ -11,6 +11,8 @@ interface MeetingSpeech {
   title: string | null;
   manual_time: string | null;
   completed: boolean;
+  speaker_id: string | null;
+  evaluator_id: string | null;
 }
 
 interface MeetingDetailData {
@@ -35,7 +37,7 @@ export default function MeetingDetail() {
           supabase.from("meetings").select("*").eq("id", id).single(),
           supabase
             .from("speeches")
-            .select("id, title, manual_time, completed")
+            .select("id, title, manual_time, completed, speaker_id, evaluator_id")
             .eq("meeting_id", id)
             .order("created_at", { ascending: true }),
         ]);

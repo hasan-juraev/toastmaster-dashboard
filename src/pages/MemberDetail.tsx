@@ -9,6 +9,8 @@ interface MemberDetailData {
   speechesDelivered: number;
   rolesFilled: number;
   meetingsContributed: number;
+  fillerWordAvg: number | null;
+  fillerReportsLogged: number;
   roleProgress: Array<{
     roleName: string;
     count: number;
@@ -30,6 +32,7 @@ export default function MemberDetail() {
         { data: member, error: memberError },
         { data: speeches, error: speechError },
         { data: roles, error: roleError },
+        { data: ahCounterReports, error: ahCounterError },
         { data: grammarianReports, error: grammarianError },
         { data: evaluatorReports, error: evaluatorError },
         { data: timerReports, error: timerError },
@@ -44,6 +47,7 @@ export default function MemberDetail() {
           .from("meeting_roles")
           .select("id, meeting_id, status, score, completed_at, roles(name), meetings(date)")
           .eq("member_id", id),
+        supabase.from("ah_counter_reports").select("*").eq("speaker_id", id),
         supabase.from("grammarian_reports").select("*").eq("member_id", id),
         supabase.from("evaluator_reports").select("*").eq("member_id", id),
         supabase.from("timer_reports").select("*").eq("member_id", id),
@@ -52,6 +56,7 @@ export default function MemberDetail() {
       if (memberError) throw memberError;
       if (speechError) throw speechError;
       if (roleError) throw roleError;
+      if (ahCounterError) throw ahCounterError;
       if (grammarianError) throw grammarianError;
       if (evaluatorError) throw evaluatorError;
       if (timerError) throw timerError;
@@ -130,6 +135,13 @@ export default function MemberDetail() {
               return sum + Math.abs((report.actual_seconds ?? 0) - (report.target_seconds ?? 0));
             }, 0) / timedReports.length
           : null;
+      const fillerWordAvg =
+        ahCounterReports && ahCounterReports.length > 0
+          ? ahCounterReports.reduce(
+              (sum, report) => sum + (report.ah_count ?? 0),
+              0,
+            ) / ahCounterReports.length
+          : null;
 
       const roleProgress = Array.from(roleProgressMap.entries())
         .map(([roleName, stats]) => {
@@ -151,6 +163,8 @@ export default function MemberDetail() {
             highlight = `${evaluatorAvgQuality.toFixed(1)}/10 quality avg`;
           } else if (roleName === "Timer" && timerAvgDelta != null) {
             highlight = `${timerAvgDelta.toFixed(1)}s average timing drift`;
+          } else if (roleName === "Speaker" && fillerWordAvg != null) {
+            highlight = `${fillerWordAvg.toFixed(1)} filler words avg`;
           } else if (avgScore != null) {
             highlight = `${avgScore.toFixed(1)}/10 average score`;
           }
@@ -172,6 +186,8 @@ export default function MemberDetail() {
         speechesDelivered: speeches?.length ?? 0,
         rolesFilled: roles?.length ?? 0,
         meetingsContributed: meetingIds.size,
+        fillerWordAvg,
+        fillerReportsLogged: ahCounterReports?.length ?? 0,
         roleProgress,
       };
     },
@@ -234,7 +250,7 @@ export default function MemberDetail() {
               </span>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-[1.35rem] bg-app-panel-soft p-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
                   Speeches
@@ -266,6 +282,17 @@ export default function MemberDetail() {
                 </div>
                 <div className="mt-1 text-sm text-app-text-muted">
                   Distinct meetings contributed to
+                </div>
+              </div>
+              <div className="rounded-[1.35rem] bg-app-panel-soft p-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                  Filler Avg
+                </div>
+                <div className="mt-2 text-3xl font-bold text-app-text">
+                  {data.fillerWordAvg != null ? data.fillerWordAvg.toFixed(1) : "--"}
+                </div>
+                <div className="mt-1 text-sm text-app-text-muted">
+                  {data.fillerReportsLogged} Ah-Counter reports
                 </div>
               </div>
             </div>
