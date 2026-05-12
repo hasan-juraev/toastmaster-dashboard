@@ -34,7 +34,7 @@ export default function Login() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-60 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.14),transparent_60%)] sm:h-72" />
 
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col justify-start px-4 py-6 sm:px-6 sm:py-8 md:justify-center">
-        <div className="mx-auto w-full max-w-sm">
+        <div className="mx-auto w-full max-w-[20rem] sm:max-w-sm">
           <div className="mb-7 pt-4 text-center sm:mb-10 sm:pt-0">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary shadow-app-card sm:mb-5 sm:h-16 sm:w-16">
               <span className="material-symbols-outlined text-[1.75rem] sm:text-[2rem]">
@@ -44,10 +44,10 @@ export default function Login() {
             <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.22em] text-primary sm:text-xs sm:tracking-[0.28em]">
               Toastmasters Tracker
             </p>
-            <h1 className="text-[2.15rem] font-semibold tracking-tight text-app-text sm:text-4xl md:text-[2.8rem]">
+            <h1 className="mx-auto max-w-[14rem] text-[1.95rem] font-semibold tracking-tight text-app-text sm:max-w-none sm:text-4xl md:text-[2.8rem]">
               Welcome Back
             </h1>
-            <p className="mt-3 px-2 text-sm leading-6 text-app-text-muted sm:px-0 sm:text-base">
+            <p className="mx-auto mt-3 max-w-[17rem] text-sm leading-6 text-app-text-muted sm:max-w-none sm:text-base">
               Manage your club meetings, members, roles, and progress from a
               cleaner dashboard experience.
             </p>
@@ -93,7 +93,7 @@ export default function Login() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                   <label
                     htmlFor="password"
                     className="block text-xs font-semibold uppercase tracking-[0.16em] text-app-text-muted"
@@ -156,7 +156,7 @@ export default function Login() {
               New to the club?
               <button
                 type="button"
-                className="ml-1 font-semibold text-primary transition hover:underline"
+                className="mt-1 block w-full font-semibold text-primary transition hover:underline sm:ml-1 sm:inline sm:w-auto"
                 title="Member signup is outside the current app scope."
               >
                 Contact an admin

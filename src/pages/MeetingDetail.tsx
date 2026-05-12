@@ -55,6 +55,10 @@ export default function MeetingDetail() {
   const speeches = data?.speeches ?? [];
   const assignedCount = meetingRoles?.filter((assignment) => assignment.member_id).length ?? 0;
   const openCount = Math.max((roles?.length ?? 0) - assignedCount, 0);
+  const inProgressCount =
+    meetingRoles?.filter((assignment) => assignment.status === "in_progress").length ?? 0;
+  const completedRoleCount =
+    meetingRoles?.filter((assignment) => assignment.status === "completed").length ?? 0;
 
   if (isLoading) {
     return (
@@ -113,7 +117,7 @@ export default function MeetingDetail() {
               </span>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-[1.35rem] bg-app-panel-soft p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
                   Assigned Roles
@@ -130,10 +134,18 @@ export default function MeetingDetail() {
               </div>
               <div className="rounded-[1.35rem] bg-app-panel-soft p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
-                  Speeches
+                  In Progress
                 </p>
                 <div className="mt-2 text-3xl font-bold text-app-text">
-                  {speeches.length}
+                  {inProgressCount}
+                </div>
+              </div>
+              <div className="rounded-[1.35rem] bg-app-panel-soft p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                  Completed Roles
+                </p>
+                <div className="mt-2 text-3xl font-bold text-app-text">
+                  {completedRoleCount}
                 </div>
               </div>
             </div>
@@ -155,14 +167,16 @@ export default function MeetingDetail() {
               <p className="mt-2 text-sm text-app-text-muted">
                 {openCount > 0
                   ? "Assign members below to close out the agenda."
-                  : "You are ready to focus on speeches and facilitation."}
+                  : completedRoleCount > 0
+                    ? "Use the workflow cards below to finish scoring and notes."
+                    : "You are ready to focus on speeches and facilitation."}
               </p>
             </div>
           </div>
         </div>
 
         <div className="app-panel rounded-[2rem] p-6">
-          <RoleAssignment meetingId={meeting.id} />
+          <RoleAssignment meetingId={meeting.id} speeches={speeches} />
         </div>
 
         <div className="app-panel rounded-[2rem] p-6">

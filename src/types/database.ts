@@ -20,12 +20,23 @@ export interface Role {
   name: string;
 }
 
+export type MeetingRoleStatus =
+  | "unassigned"
+  | "assigned"
+  | "in_progress"
+  | "completed"
+  | "skipped";
+
 export interface MeetingRole {
   id: string;
   meeting_id: string;
   role_id: string;
   member_id: string | null;
   allow_duplicate: boolean;
+  status: MeetingRoleStatus | null;
+  completed_at: string | null;
+  notes: string | null;
+  score: number | null;
 }
 
 export interface Speech {
@@ -40,10 +51,14 @@ export interface Speech {
 
 export interface GrammarianReport {
   id: string;
+  meeting_role_id: string | null;
   meeting_id: string | null;
-  speaker_id: string | null;
+  member_id: string | null;
   grammar_errors: number;
+  notable_phrases: number;
+  score: number | null;
   notes: string | null;
+  created_at: string;
 }
 
 export interface AhCounterReport {
@@ -52,6 +67,29 @@ export interface AhCounterReport {
   speaker_id: string | null;
   ah_count: number;
   notes: string | null;
+}
+
+export interface EvaluatorReport {
+  id: string;
+  meeting_role_id: string | null;
+  meeting_id: string | null;
+  member_id: string | null;
+  speech_id: string | null;
+  quality_score: number | null;
+  strengths: string | null;
+  improvement_notes: string | null;
+  created_at: string;
+}
+
+export interface TimerReport {
+  id: string;
+  meeting_role_id: string | null;
+  meeting_id: string | null;
+  member_id: string | null;
+  target_seconds: number | null;
+  actual_seconds: number | null;
+  notes: string | null;
+  created_at: string;
 }
 
 export interface Vote {

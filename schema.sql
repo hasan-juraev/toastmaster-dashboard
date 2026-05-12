@@ -30,6 +30,10 @@ create table meeting_roles (
   role_id uuid references roles,
   member_id uuid references members,
   allow_duplicate boolean default false,
+  status text default 'unassigned',
+  completed_at timestamptz,
+  notes text,
+  score numeric(4,1),
   unique (meeting_id, role_id) deferrable initially deferred
 );
 
@@ -47,10 +51,14 @@ create table speeches (
 -- GRAMMARIAN
 create table grammarian_reports (
   id uuid primary key default gen_random_uuid(),
-  meeting_id uuid,
-  speaker_id uuid,
+  meeting_role_id uuid unique references meeting_roles on delete cascade,
+  meeting_id uuid references meetings on delete cascade,
+  member_id uuid references members,
   grammar_errors int default 0,
-  notes text
+  notable_phrases int default 0,
+  score numeric(4,1),
+  notes text,
+  created_at timestamptz default now()
 );
 
 -- AH COUNTER
@@ -60,6 +68,31 @@ create table ah_counter_reports (
   speaker_id uuid,
   ah_count int default 0,
   notes text
+);
+
+-- EVALUATOR
+create table evaluator_reports (
+  id uuid primary key default gen_random_uuid(),
+  meeting_role_id uuid unique references meeting_roles on delete cascade,
+  meeting_id uuid references meetings on delete cascade,
+  member_id uuid references members,
+  speech_id uuid references speeches on delete set null,
+  quality_score numeric(4,1),
+  strengths text,
+  improvement_notes text,
+  created_at timestamptz default now()
+);
+
+-- TIMER
+create table timer_reports (
+  id uuid primary key default gen_random_uuid(),
+  meeting_role_id uuid unique references meeting_roles on delete cascade,
+  meeting_id uuid references meetings on delete cascade,
+  member_id uuid references members,
+  target_seconds int,
+  actual_seconds int,
+  notes text,
+  created_at timestamptz default now()
 );
 
 -- VOTES

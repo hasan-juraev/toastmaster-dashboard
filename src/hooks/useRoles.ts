@@ -37,7 +37,10 @@ export function useUpsertMeetingRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (role: Omit<MeetingRole, "id"> & { id?: string }) => {
+    mutationFn: async (
+      role: Pick<MeetingRole, "meeting_id" | "role_id"> &
+        Partial<Omit<MeetingRole, "id" | "meeting_id" | "role_id">> & { id?: string },
+    ) => {
       const { data, error } = await supabase
         .from("meeting_roles")
         .upsert(role)

@@ -62,23 +62,6 @@ function ChartTooltip({
   );
 }
 
-function getActivityCells(
-  speechCounts: number[],
-  roleCounts: number[],
-  totalRoles: number,
-) {
-  return Array.from({ length: 24 }, (_, index) => {
-    const speech = speechCounts[index % Math.max(speechCounts.length, 1)] ?? 0;
-    const role = roleCounts[index % Math.max(roleCounts.length, 1)] ?? 0;
-    const normalized =
-      totalRoles > 0
-        ? Math.min(4, Math.round(((speech * 2 + role) / totalRoles) * 12))
-        : Math.min(4, speech);
-
-    return normalized;
-  });
-}
-
 export default function Analytics() {
   const { data, isLoading } = useAnalytics();
 
@@ -86,11 +69,9 @@ export default function Analytics() {
     data?.roleDistribution.reduce((sum, role) => sum + role.count, 0) ?? 0;
   const uniqueRoles = data?.roleDistribution.length ?? 0;
   const roleDiversity =
-    totalRoleCount > 0 ? Math.min(Math.round((uniqueRoles / 4) * 100), 100) : 0;
-  const progressWidth = totalRoleCount > 0 ? `${roleDiversity}%` : "0%";
-  const speechCounts = data?.monthlySpeechData.map((point) => point.count) ?? [];
-  const roleCounts = data?.roleDistribution.map((role) => role.count) ?? [];
-  const activityCells = getActivityCells(speechCounts, roleCounts, totalRoleCount);
+    totalRoleCount > 0 ? Math.min(Math.round((uniqueRoles / 7) * 100), 100) : 0;
+  const diversityWidth = totalRoleCount > 0 ? `${roleDiversity}%` : "0%";
+  const completionWidth = data ? `${data.roleCompletionRate}%` : "0%";
   const fillerTrend =
     data?.fillerWordAvg && data.fillerWordAvg <= 4 ? "Excellent control" : "Improving";
 
@@ -104,8 +85,8 @@ export default function Analytics() {
               Progress Dashboard
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-app-text-muted md:text-base">
-              Track your speaking journey with a lighter, clearer dashboard for
-              speeches, roles, and meeting momentum.
+              Track role completion, member rotation, and quality signals across
+              the club from one dashboard.
             </p>
           </div>
           <button
@@ -123,60 +104,34 @@ export default function Analytics() {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[0.75fr_0.75fr_1.5fr]">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
                 icon="mic"
                 label="Total Speeches"
                 value={data?.speechesDelivered ?? 0}
-                eyebrow="+2"
+                eyebrow="Completed"
               />
               <StatCard
                 icon="groups"
                 label="Total Roles"
                 value={data?.totalRoles ?? 0}
-                eyebrow="This Year"
+                eyebrow="Tracked"
               />
-              <div className="app-panel rounded-[1.75rem] p-5 sm:col-span-2 xl:col-span-1">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <span className="material-symbols-outlined text-[1.2rem]">
-                        pie_chart
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-lg font-medium text-app-text">
-                        Role Diversity
-                      </p>
-                      <p className="text-sm text-app-text-muted">
-                        Based on assigned role categories
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-semibold text-emerald-600">+5%</span>
-                </div>
-
-                <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
-                  <div className="text-[2.5rem] font-semibold leading-none text-app-text sm:text-[3rem]">
-                    {roleDiversity}%
-                  </div>
-                  <p className="text-sm text-app-text-muted sm:pb-1">
-                    {totalRoleCount
-                      ? `${uniqueRoles} active role groups`
-                      : "No role data yet"}
-                  </p>
-                </div>
-
-                <div className="mt-5 h-3 overflow-hidden rounded-full bg-app-panel-soft">
-                  <div
-                    className="h-full rounded-full bg-primary transition-[width]"
-                    style={{ width: progressWidth }}
-                  />
-                </div>
-              </div>
+              <StatCard
+                icon="task_alt"
+                label="Role Completion"
+                value={`${data?.roleCompletionRate ?? 0}%`}
+                eyebrow="Workflow"
+              />
+              <StatCard
+                icon="spellcheck"
+                label="Filler Word Avg"
+                value={data?.fillerWordAvg ?? 0}
+                eyebrow={fillerTrend}
+              />
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-[1.5fr_0.9fr]">
+            <div className="grid gap-6 xl:grid-cols-[1.45fr_0.95fr]">
               <div className="app-panel rounded-[1.75rem] p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
@@ -262,55 +217,71 @@ export default function Analytics() {
 
               <div className="app-panel rounded-[1.75rem] p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-[1.8rem] font-semibold tracking-tight text-app-text">
-                    Speaking Quality
-                  </h2>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      data?.fillerWordAvg
-                        ? "bg-emerald-50 text-emerald-600"
-                        : "bg-app-panel-soft text-app-text-muted"
-                    }`}
-                  >
-                    {data?.fillerWordAvg ? fillerTrend : "No data"}
+                  <div>
+                    <h2 className="text-[1.8rem] font-semibold tracking-tight text-app-text">
+                      Workflow Snapshot
+                    </h2>
+                    <p className="text-sm text-app-text-muted">
+                      Coverage, completion, and role breadth.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
+                    {data?.roleCompletionRate ?? 0}% complete
                   </span>
                 </div>
 
                 <div className="mt-6 rounded-[1.25rem] bg-app-panel-soft p-5">
-                  <p className="text-sm text-app-text-muted">Filler Word Avg</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-app-text-muted">Completion rate</p>
+                    <p className="text-sm font-semibold text-app-text">
+                      {data?.roleStatusCounts.completed ?? 0} completed
+                    </p>
+                  </div>
                   <div className="mt-3 text-[3rem] font-semibold leading-none text-app-text">
-                    {data?.fillerWordAvg ? `${data.fillerWordAvg}` : "--"}
+                    {data?.roleCompletionRate ?? 0}%
                   </div>
                   <p className="mt-2 text-sm text-app-text-muted">
-                    Average filler words per speech from recorded Ah-Counter data.
+                    Measured from role workflow status updates on meeting assignments.
                   </p>
+                  <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/80">
+                    <div
+                      className="h-full rounded-full bg-primary transition-[width]"
+                      style={{ width: completionWidth }}
+                    />
+                  </div>
                 </div>
 
-                <div className="mt-4 rounded-[1.25rem] border border-app-border p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-app-text">Activity Snapshot</p>
-                    <span className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                      Recent mix
-                    </span>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[1.25rem] border border-app-border p-4">
+                    <p className="text-sm text-app-text-muted">Assigned</p>
+                    <p className="mt-2 text-2xl font-semibold text-app-text">
+                      {data?.roleStatusCounts.assigned ?? 0}
+                    </p>
                   </div>
-                  <div className="mt-4 grid grid-cols-6 gap-2">
-                    {activityCells.map((level, index) => (
+                  <div className="rounded-[1.25rem] border border-app-border p-4">
+                    <p className="text-sm text-app-text-muted">In progress</p>
+                    <p className="mt-2 text-2xl font-semibold text-app-text">
+                      {data?.roleStatusCounts.inProgress ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.25rem] border border-app-border p-4">
+                    <p className="text-sm text-app-text-muted">Skipped</p>
+                    <p className="mt-2 text-2xl font-semibold text-app-text">
+                      {data?.roleStatusCounts.skipped ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.25rem] border border-app-border p-4">
+                    <p className="text-sm text-app-text-muted">Role diversity</p>
+                    <p className="mt-2 text-2xl font-semibold text-app-text">
+                      {roleDiversity}%
+                    </p>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-app-panel-soft">
                       <div
-                        key={index}
-                        className="aspect-square rounded-md"
-                        style={{
-                          backgroundColor:
-                            level === 0
-                              ? "rgba(226,232,240,0.9)"
-                              : `rgba(59,130,246,${0.16 + level * 0.16})`,
-                        }}
+                        className="h-full rounded-full bg-primary transition-[width]"
+                        style={{ width: diversityWidth }}
                       />
-                    ))}
+                    </div>
                   </div>
-                  <p className="mt-3 text-sm text-app-text-muted">
-                    A compact view of recent speaking and role volume derived from
-                    your available analytics data.
-                  </p>
                 </div>
               </div>
             </div>
@@ -385,45 +356,110 @@ export default function Analytics() {
               <div className="app-panel rounded-[1.75rem] p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="app-eyebrow">Summary</p>
+                    <p className="app-eyebrow">Performance</p>
                     <h2 className="mt-2 text-[1.8rem] font-semibold tracking-tight text-app-text">
-                      Club snapshot
+                      Role analytics
                     </h2>
                   </div>
                 </div>
 
                 <div className="mt-5 grid gap-3">
                   <div className="rounded-[1.25rem] bg-slate-50 p-4">
-                    <p className="text-sm text-app-text-muted">Speaking cadence</p>
+                    <p className="text-sm text-app-text-muted">Grammarian</p>
                     <p className="mt-2 text-2xl font-semibold text-app-text">
-                      {data?.speechesDelivered ? "Consistent growth" : "Waiting on data"}
+                      {data?.grammarianStats.avgErrors ?? 0} errors avg
                     </p>
                     <p className="mt-1 text-sm text-app-text-muted">
-                      The line chart shows whether speaking opportunities are steady month to month.
+                      {data?.grammarianStats.notablePhrasesAvg ?? 0} notable phrases,
+                      score {data?.grammarianStats.avgScore ?? 0}/10
                     </p>
                   </div>
 
                   <div className="rounded-[1.25rem] bg-slate-50 p-4">
-                    <p className="text-sm text-app-text-muted">Role coverage</p>
+                    <p className="text-sm text-app-text-muted">Evaluator</p>
                     <p className="mt-2 text-2xl font-semibold text-app-text">
-                      {uniqueRoles} active categories
+                      {data?.evaluatorStats.avgQuality ?? 0}/10 quality
                     </p>
                     <p className="mt-1 text-sm text-app-text-muted">
-                      Track how evenly members rotate through core meeting responsibilities.
+                      {data?.evaluatorStats.reportsLogged ?? 0} evaluator reports logged
                     </p>
                   </div>
 
                   <div className="rounded-[1.25rem] bg-slate-50 p-4">
-                    <p className="text-sm text-app-text-muted">Quality trend</p>
+                    <p className="text-sm text-app-text-muted">Timer</p>
                     <p className="mt-2 text-2xl font-semibold text-app-text">
-                      {data?.fillerWordAvg ? `${data.fillerWordAvg} filler words avg` : "No Ah-Counter data"}
+                      {data?.timerStats.avgDelta ?? 0}s average drift
                     </p>
                     <p className="mt-1 text-sm text-app-text-muted">
-                      Use this with evaluator feedback to coach speakers over time.
+                      {data?.timerStats.onTimeRate ?? 0}% of logged timings finished within 15 seconds
+                    </p>
+                  </div>
+
+                  <div className="rounded-[1.25rem] bg-slate-50 p-4">
+                    <p className="text-sm text-app-text-muted">Facilitators</p>
+                    <p className="mt-2 text-2xl font-semibold text-app-text">
+                      {data?.facilitatorStats.avgScore ?? 0}/10 average score
+                    </p>
+                    <p className="mt-1 text-sm text-app-text-muted">
+                      Toastmaster {data?.facilitatorStats.toastmasterAvg ?? 0}/10,
+                      General Evaluator {data?.facilitatorStats.generalEvaluatorAvg ?? 0}/10
                     </p>
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div className="app-panel rounded-[1.75rem] p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="app-eyebrow">Members</p>
+                  <h2 className="mt-2 text-[1.8rem] font-semibold tracking-tight text-app-text">
+                    Per-member role progress
+                  </h2>
+                </div>
+              </div>
+
+              {data?.memberRoleProgress.length ? (
+                <div className="mt-5 grid gap-3">
+                  {data.memberRoleProgress.map((member) => (
+                    <article
+                      key={member.memberName}
+                      className="flex flex-col gap-3 rounded-[1.25rem] border border-app-border bg-app-panel-soft px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <h3 className="text-base font-semibold text-app-text">
+                          {member.memberName}
+                        </h3>
+                        <p className="mt-1 text-sm text-app-text-muted">
+                          Top role: {member.topRole}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 sm:w-auto">
+                        <div className="rounded-xl bg-white px-4 py-3 text-center">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                            Completed
+                          </p>
+                          <p className="mt-2 text-xl font-semibold text-app-text">
+                            {member.rolesCompleted}
+                          </p>
+                        </div>
+                        <div className="rounded-xl bg-white px-4 py-3 text-center">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                            Role Types
+                          </p>
+                          <p className="mt-2 text-xl font-semibold text-app-text">
+                            {member.distinctRoleCount}
+                          </p>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-[1.25rem] bg-app-panel-soft p-8 text-center text-sm text-app-text-muted">
+                  No role progress data yet.
+                </div>
+              )}
             </div>
           </>
         )}
