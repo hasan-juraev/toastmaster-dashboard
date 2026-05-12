@@ -53,8 +53,14 @@ create table speeches (
   title text,
   manual_time text,
   evaluator_id uuid references members,
-  completed boolean default false
+  completed boolean default false,
+  created_at timestamptz default now()
 );
+
+create index speeches_meeting_id_idx on speeches (meeting_id);
+create index speeches_speaker_id_idx on speeches (speaker_id);
+create index speeches_evaluator_id_idx on speeches (evaluator_id);
+create index speeches_created_at_idx on speeches (created_at);
 
 -- GRAMMARIAN
 create table grammarian_reports (

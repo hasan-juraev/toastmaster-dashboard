@@ -36,16 +36,11 @@ export default function Login() {
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col justify-start px-4 py-6 sm:px-6 sm:py-8 md:justify-center">
         <div className="mx-auto w-full max-w-[20rem] sm:max-w-sm">
           <div className="mb-7 pt-4 text-center sm:mb-10 sm:pt-0">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary shadow-app-card sm:mb-5 sm:h-16 sm:w-16">
-              <span className="material-symbols-outlined text-[1.75rem] sm:text-[2rem]">
-                record_voice_over
-              </span>
-            </div>
             <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.22em] text-primary sm:text-xs sm:tracking-[0.28em]">
-              Toastmasters Tracker
+              Progress Tracker
             </p>
             <h1 className="mx-auto max-w-[14rem] text-[1.95rem] font-semibold tracking-tight text-app-text sm:max-w-none sm:text-4xl md:text-[2.8rem]">
-              Welcome Back
+              GGLTM
             </h1>
             <p className="mx-auto mt-3 max-w-[17rem] text-sm leading-6 text-app-text-muted sm:max-w-none sm:text-base">
               Manage your club meetings, members, roles, and progress from a
@@ -129,7 +124,9 @@ export default function Login() {
                     type="button"
                     onClick={() => setShowPassword((value) => !value)}
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-app-text-subtle transition hover:text-primary sm:pr-4"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     <span className="material-symbols-outlined text-lg">
                       {showPassword ? "visibility" : "visibility_off"}

@@ -175,11 +175,27 @@ export default function RoleAssignment({
   meetingId,
   speeches,
 }: RoleAssignmentProps) {
-  const { data: roles, isLoading: loadingRoles } = useRoles();
-  const { data: members, isLoading: loadingMembers } = useMembers();
-  const { data: meetingRoles, isLoading: loadingMeetingRoles } =
+  const {
+    data: roles,
+    isLoading: loadingRoles,
+    error: rolesError,
+  } = useRoles();
+  const {
+    data: members,
+    isLoading: loadingMembers,
+    error: membersError,
+  } = useMembers();
+  const {
+    data: meetingRoles,
+    isLoading: loadingMeetingRoles,
+    error: meetingRolesError,
+  } =
     useMeetingRoles(meetingId);
-  const { data: roleReports, isLoading: loadingReports } =
+  const {
+    data: roleReports,
+    isLoading: loadingReports,
+    error: roleReportsError,
+  } =
     useMeetingRoleReports(meetingId);
   const upsertRole = useUpsertMeetingRole();
   const deleteRole = useDeleteMeetingRole();
@@ -335,6 +351,17 @@ export default function RoleAssignment({
     return (
       <div className="app-panel rounded-[1.5rem] p-6 text-center text-app-text-muted">
         Loading role workflows...
+      </div>
+    );
+  }
+
+  if (rolesError || membersError || meetingRolesError || roleReportsError) {
+    const queryError =
+      rolesError ?? membersError ?? meetingRolesError ?? roleReportsError;
+
+    return (
+      <div className="rounded-[1.5rem] border border-app-danger/25 bg-app-danger/10 px-4 py-3 text-sm text-red-600">
+        Unable to load role workflows. {getErrorMessage(queryError)}
       </div>
     );
   }

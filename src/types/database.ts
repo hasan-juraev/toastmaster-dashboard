@@ -47,6 +47,7 @@ export interface Speech {
   manual_time: string | null;
   evaluator_id: string | null;
   completed: boolean;
+  created_at: string;
 }
 
 export interface GrammarianReport {

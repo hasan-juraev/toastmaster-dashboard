@@ -50,10 +50,23 @@ alter table grammarian_reports
   add column if not exists score numeric(4,1),
   add column if not exists created_at timestamptz default now();
 
-update grammarian_reports
-set member_id = speaker_id
-where member_id is null
-  and speaker_id is not null;
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'grammarian_reports'
+      and column_name = 'speaker_id'
+  ) then
+    execute $update$
+      update grammarian_reports
+      set member_id = speaker_id
+      where member_id is null
+        and speaker_id is not null
+    $update$;
+  end if;
+end $$;
 
 create index if not exists grammarian_reports_meeting_role_id_idx on grammarian_reports (meeting_role_id);
 create index if not exists grammarian_reports_meeting_id_idx on grammarian_reports (meeting_id);

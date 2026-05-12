@@ -54,11 +54,11 @@ function DesktopNav() {
     <header className="app-topbar">
       <div className="app-screen app-topbar__frame">
         <div className="app-brand">
-          <div className="app-brand__icon">
+          {/* <div className="app-brand__icon">
             <span className="material-symbols-outlined text-[1.35rem]">
               record_voice_over
             </span>
-          </div>
+          </div> */}
           <div>
             <p className="app-brand__eyebrow">Toastmasters Tracker</p>
             <p className="app-brand__name">Club Progress Dashboard</p>
