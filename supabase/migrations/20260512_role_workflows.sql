@@ -11,6 +11,38 @@ set status = case
 end
 where status is null;
 
+create index if not exists meeting_roles_meeting_id_idx on meeting_roles (meeting_id);
+create index if not exists meeting_roles_member_id_idx on meeting_roles (member_id);
+create index if not exists meeting_roles_role_id_idx on meeting_roles (role_id);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'meeting_roles_status_check'
+      and conrelid = 'meeting_roles'::regclass
+  ) then
+    alter table meeting_roles
+      add constraint meeting_roles_status_check
+      check (status in ('unassigned', 'assigned', 'in_progress', 'completed', 'skipped'));
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'meeting_roles_score_range_check'
+      and conrelid = 'meeting_roles'::regclass
+  ) then
+    alter table meeting_roles
+      add constraint meeting_roles_score_range_check
+      check (score is null or (score >= 0 and score <= 10));
+  end if;
+end $$;
+
 alter table grammarian_reports
   add column if not exists meeting_role_id uuid references meeting_roles on delete cascade,
   add column if not exists member_id uuid references members,
@@ -23,15 +55,48 @@ set member_id = speaker_id
 where member_id is null
   and speaker_id is not null;
 
+create index if not exists grammarian_reports_meeting_role_id_idx on grammarian_reports (meeting_role_id);
+create index if not exists grammarian_reports_meeting_id_idx on grammarian_reports (meeting_id);
+create index if not exists grammarian_reports_member_id_idx on grammarian_reports (member_id);
+
 do $$
 begin
   if not exists (
     select 1
     from pg_constraint
     where conname = 'grammarian_reports_meeting_role_id_key'
+      and conrelid = 'grammarian_reports'::regclass
   ) then
     alter table grammarian_reports
       add constraint grammarian_reports_meeting_role_id_key unique (meeting_role_id);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'grammarian_reports_nonnegative_check'
+      and conrelid = 'grammarian_reports'::regclass
+  ) then
+    alter table grammarian_reports
+      add constraint grammarian_reports_nonnegative_check
+      check (grammar_errors >= 0 and notable_phrases >= 0);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'grammarian_reports_score_range_check'
+      and conrelid = 'grammarian_reports'::regclass
+  ) then
+    alter table grammarian_reports
+      add constraint grammarian_reports_score_range_check
+      check (score is null or (score >= 0 and score <= 10));
   end if;
 end $$;
 
@@ -47,6 +112,25 @@ create table if not exists evaluator_reports (
   created_at timestamptz default now()
 );
 
+create index if not exists evaluator_reports_meeting_role_id_idx on evaluator_reports (meeting_role_id);
+create index if not exists evaluator_reports_meeting_id_idx on evaluator_reports (meeting_id);
+create index if not exists evaluator_reports_member_id_idx on evaluator_reports (member_id);
+create index if not exists evaluator_reports_speech_id_idx on evaluator_reports (speech_id);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'evaluator_reports_quality_score_range_check'
+      and conrelid = 'evaluator_reports'::regclass
+  ) then
+    alter table evaluator_reports
+      add constraint evaluator_reports_quality_score_range_check
+      check (quality_score is null or (quality_score >= 0 and quality_score <= 10));
+  end if;
+end $$;
+
 create table if not exists timer_reports (
   id uuid primary key default gen_random_uuid(),
   meeting_role_id uuid unique references meeting_roles on delete cascade,
@@ -57,3 +141,24 @@ create table if not exists timer_reports (
   notes text,
   created_at timestamptz default now()
 );
+
+create index if not exists timer_reports_meeting_role_id_idx on timer_reports (meeting_role_id);
+create index if not exists timer_reports_meeting_id_idx on timer_reports (meeting_id);
+create index if not exists timer_reports_member_id_idx on timer_reports (member_id);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'timer_reports_seconds_nonnegative_check'
+      and conrelid = 'timer_reports'::regclass
+  ) then
+    alter table timer_reports
+      add constraint timer_reports_seconds_nonnegative_check
+      check (
+        (target_seconds is null or target_seconds >= 0)
+        and (actual_seconds is null or actual_seconds >= 0)
+      );
+  end if;
+end $$;
