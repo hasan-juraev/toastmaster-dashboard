@@ -28,12 +28,10 @@ function MetricCard({
   icon,
   label,
   value,
-  helper,
 }: {
   icon: string;
   label: string;
   value: string | number;
-  helper: string;
 }) {
   return (
     <div className="app-panel rounded-[1.6rem] p-5">
@@ -53,7 +51,6 @@ function MetricCard({
       <div className="mt-2 text-[2rem] font-bold leading-none text-app-text sm:text-[2.2rem]">
         {value}
       </div>
-      <p className="mt-2 text-sm text-app-text-muted">{helper}</p>
     </div>
   );
 }
@@ -167,19 +164,16 @@ export default function Dashboard() {
                 icon="group"
                 label="Active Members"
                 value={activeMembers.length}
-                helper={`Roster size: ${totalMembers}`}
               />
               <MetricCard
                 icon="calendar_month"
                 label="Upcoming Meetings"
                 value={scheduledMeetings}
-                helper="Scheduled in the current cycle"
               />
               <MetricCard
                 icon="task_alt"
                 label="Completed Meetings"
                 value={completedMeetings}
-                helper={`${completionRate}% completion rate`}
               />
               <Link
                 to="/analytics"
@@ -201,9 +195,6 @@ export default function Dashboard() {
                 <div className="mt-2 text-[2rem] font-bold italic leading-none text-app-text">
                   Ready
                 </div>
-                <p className="mt-2 text-sm text-app-text-muted">
-                  Open your white analytics dashboard
-                </p>
               </Link>
             </div>
           </div>
@@ -270,72 +261,6 @@ export default function Dashboard() {
               </p>
             </div>
           )}
-        </section>
-
-        <section className="grid gap-4 pb-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="app-panel rounded-[2rem] p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="app-eyebrow">Club Snapshot</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-app-text">
-                  Momentum for this cycle
-                </h2>
-              </div>
-              {nextMeeting ? (
-                <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
-                  #{formatShortMeetingDate(nextMeeting.date)}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
-              <div className="app-surface-muted rounded-[1.35rem] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
-                  RSVP+
-                </p>
-                <div className="mt-2 text-3xl font-bold text-app-text">
-                  {Math.min(activeMembers.length, 15)}
-                </div>
-                <p className="mt-1 text-sm text-emerald-600">
-                  +2 guests expected
-                </p>
-              </div>
-              <div className="app-surface-muted rounded-[1.35rem] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
-                  Roles
-                </p>
-                <div className="mt-2 text-3xl font-bold text-app-text">
-                  Ready
-                </div>
-                <p className="mt-1 text-sm text-app-text-muted">
-                  Click into meetings to assign
-                </p>
-              </div>
-              <div className="app-surface-muted rounded-[1.35rem] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
-                  Progress
-                </p>
-                <div className="mt-2 text-3xl font-bold text-app-text">
-                  {completionRate}%
-                </div>
-                <p className="mt-1 text-sm text-app-text-muted">
-                  Meetings completed this season
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="app-panel rounded-[2rem] p-6">
-            <p className="app-eyebrow">Club Lead</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-app-text">
-              Hello, {displayName}
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-app-text-muted">
-              Use this dashboard to stay on top of upcoming meetings, role
-              coverage, and club momentum without being stuck in a phone-sized
-              layout.
-            </p>
-          </div>
         </section>
       </section>
     </AppShell>
