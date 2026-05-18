@@ -20,7 +20,9 @@ function MeetingStatusBadge({ status }: { status: string }) {
       : "bg-amber-50 text-amber-600";
 
   return (
-    <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${badgeClass}`}>
+    <span
+      className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${badgeClass}`}
+    >
       {status}
     </span>
   );
@@ -60,21 +62,17 @@ export default function Meetings() {
       <section className="space-y-6 pt-8 pb-6 md:space-y-8 md:pt-10">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="app-eyebrow">
-              Schedule
-            </p>
+            <p className="app-eyebrow">Schedule</p>
             <h1 className="mt-2 text-4xl font-semibold tracking-tight text-app-text md:text-[3rem]">
               Meetings
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-app-text-muted md:text-base">
-              Manage upcoming sessions, archive completed meetings, and open
-              detail workspaces from a layout that scales beyond mobile width.
-            </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="rounded-[1.35rem] border border-app-border bg-app-panel px-4 py-3 text-sm text-app-text-muted shadow-app-card">
-              <span className="font-semibold text-app-text">{meetings?.length ?? 0}</span>{" "}
+              <span className="font-semibold text-app-text">
+                {meetings?.length ?? 0}
+              </span>{" "}
               meetings tracked
             </div>
             <button
@@ -103,13 +101,17 @@ export default function Meetings() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
               Upcoming
             </p>
-            <div className="mt-3 text-3xl font-bold text-app-text">{upcomingCount}</div>
+            <div className="mt-3 text-3xl font-bold text-app-text">
+              {upcomingCount}
+            </div>
           </div>
           <div className="app-panel rounded-[1.5rem] p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
               Completed
             </p>
-            <div className="mt-3 text-3xl font-bold text-app-text">{completedCount}</div>
+            <div className="mt-3 text-3xl font-bold text-app-text">
+              {completedCount}
+            </div>
           </div>
         </div>
 
@@ -195,7 +197,10 @@ export default function Meetings() {
                   </thead>
                   <tbody className="divide-y divide-app-border">
                     {meetings.map((meeting) => (
-                      <tr key={meeting.id} className="transition hover:bg-app-panel-soft/40">
+                      <tr
+                        key={meeting.id}
+                        className="transition hover:bg-app-panel-soft/40"
+                      >
                         <td className="px-6 py-5 whitespace-nowrap">
                           <Link
                             to={`/meetings/${meeting.id}`}

@@ -39,7 +39,9 @@ function MetricCard({
     <div className="app-panel rounded-[1.6rem] p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <span className="material-symbols-outlined text-[1.15rem]">{icon}</span>
+          <span className="material-symbols-outlined text-[1.15rem]">
+            {icon}
+          </span>
         </div>
         <span className="rounded-full bg-app-panel-soft px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-app-text-muted">
           Live
@@ -58,13 +60,11 @@ function MetricCard({
 
 function AgendaItem({
   time,
-  meridiem,
   title,
   subtitle,
   active,
 }: {
   time: string;
-  meridiem: string;
   title: string;
   subtitle: string;
   active?: boolean;
@@ -79,9 +79,8 @@ function AgendaItem({
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="flex w-full flex-row items-center justify-between rounded-[1.2rem] bg-slate-50 px-3 py-3 text-center sm:min-w-[4.5rem] sm:w-auto sm:flex-col sm:justify-center">
-          <span className="text-lg font-bold leading-none text-app-text">{time}</span>
-          <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-app-text-subtle sm:mt-1">
-            {meridiem}
+          <span className="text-lg font-bold leading-none text-app-text">
+            {time}
           </span>
         </div>
 
@@ -93,14 +92,6 @@ function AgendaItem({
               </h3>
               <p className="mt-1 text-sm text-app-text-muted">{subtitle}</p>
             </div>
-
-            {active ? (
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white shadow-[0_12px_24px_rgba(59,130,246,0.28)]">
-                <span className="material-symbols-outlined text-[1.15rem]">
-                  play_arrow
-                </span>
-              </div>
-            ) : null}
           </div>
         </div>
       </div>
@@ -120,7 +111,9 @@ export default function Dashboard() {
   const displayName = user?.email?.split("@")[0] ?? "Member";
   const activeMembers = members?.filter((member) => member.active) ?? [];
   const totalMembers = members?.length ?? 0;
-  const nextMeeting = meetings?.find((meeting) => meeting.status !== "completed");
+  const nextMeeting = meetings?.find(
+    (meeting) => meeting.status !== "completed",
+  );
   const completedMeetings =
     meetings?.filter((meeting) => meeting.status === "completed").length ?? 0;
   const scheduledMeetings =
@@ -233,42 +226,9 @@ export default function Dashboard() {
                 </div>
               </div>
               <p className="mt-4 text-sm leading-6 text-app-text-muted">
-                {nextMeeting?.location || "Set a location on the meetings screen."}
+                {nextMeeting?.location ||
+                  "Set a location on the meetings screen."}
               </p>
-            </div>
-
-            <div className="app-panel rounded-[2rem] p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="app-eyebrow">Quick Actions</p>
-                  <h2 className="mt-2 text-xl font-semibold text-app-text">
-                    Keep the meeting moving
-                  </h2>
-                </div>
-              </div>
-              <div className="mt-5 grid gap-3">
-                <Link
-                  to="/meetings"
-                  className="rounded-[1.2rem] border border-app-border bg-app-panel-soft px-4 py-4 text-sm font-semibold text-app-text transition hover:border-primary/30 hover:text-primary"
-                >
-                  Open Meetings
-                </Link>
-                <Link
-                  to="/members"
-                  className="rounded-[1.2rem] border border-app-border bg-app-panel-soft px-4 py-4 text-sm font-semibold text-app-text transition hover:border-primary/30 hover:text-primary"
-                >
-                  View Members
-                </Link>
-                <Link
-                  to={nextMeeting ? `/meetings/${nextMeeting.id}` : "/meetings"}
-                  className="inline-flex items-center justify-center gap-2 rounded-[1.35rem] bg-primary px-5 py-4 text-base font-semibold text-white shadow-[0_18px_34px_rgba(59,130,246,0.25)] transition hover:bg-primary/90"
-                >
-                  <span className="material-symbols-outlined text-[1.2rem]">
-                    play_circle
-                  </span>
-                  {nextMeeting ? "Start Meeting" : "Create Meeting"}
-                </Link>
-              </div>
             </div>
           </aside>
         </header>
@@ -276,42 +236,34 @@ export default function Dashboard() {
         <section className="space-y-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="app-eyebrow">Current Agenda</p>
-              <h2 className="mt-2 app-section-title">Today&apos;s flow</h2>
+              <h2 className="mt-2 app-section-title">Today&apos;s Agenda</h2>
             </div>
-            <Link
-              to="/meetings"
-              className="text-sm font-semibold text-primary transition hover:text-primary/80 md:text-base"
-            >
-              View Full
-            </Link>
           </div>
 
           {nextMeeting ? (
             <div className="grid gap-4 xl:grid-cols-3">
               <AgendaItem
-                time="07:30"
-                meridiem="AM"
+                time="19:30"
                 title="Sergeant-at-Arms Opens"
                 subtitle={displayName}
                 active
               />
               <AgendaItem
-                time="07:45"
-                meridiem="AM"
+                time="19:45"
                 title="Speaker Session"
                 subtitle="Add speeches from the meeting detail screen"
               />
               <AgendaItem
-                time="08:15"
-                meridiem="AM"
-                title="Role Signup Review"
+                time="20:00"
+                title="Prepared Speech"
                 subtitle={`Finalize open roles for ${nextMeeting.theme || "the meeting"}`}
               />
             </div>
           ) : (
             <div className="app-panel rounded-[1.75rem] p-6">
-              <p className="text-lg font-semibold text-app-text">No agenda yet</p>
+              <p className="text-lg font-semibold text-app-text">
+                No agenda yet
+              </p>
               <p className="mt-2 text-sm text-app-text-muted">
                 Create a meeting first, then assign roles and speeches from the
                 meeting detail page.
@@ -344,14 +296,20 @@ export default function Dashboard() {
                 <div className="mt-2 text-3xl font-bold text-app-text">
                   {Math.min(activeMembers.length, 15)}
                 </div>
-                <p className="mt-1 text-sm text-emerald-600">+2 guests expected</p>
+                <p className="mt-1 text-sm text-emerald-600">
+                  +2 guests expected
+                </p>
               </div>
               <div className="app-surface-muted rounded-[1.35rem] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
                   Roles
                 </p>
-                <div className="mt-2 text-3xl font-bold text-app-text">Ready</div>
-                <p className="mt-1 text-sm text-app-text-muted">Click into meetings to assign</p>
+                <div className="mt-2 text-3xl font-bold text-app-text">
+                  Ready
+                </div>
+                <p className="mt-1 text-sm text-app-text-muted">
+                  Click into meetings to assign
+                </p>
               </div>
               <div className="app-surface-muted rounded-[1.35rem] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
@@ -360,7 +318,9 @@ export default function Dashboard() {
                 <div className="mt-2 text-3xl font-bold text-app-text">
                   {completionRate}%
                 </div>
-                <p className="mt-1 text-sm text-app-text-muted">Meetings completed this season</p>
+                <p className="mt-1 text-sm text-app-text-muted">
+                  Meetings completed this season
+                </p>
               </div>
             </div>
           </div>
@@ -372,23 +332,9 @@ export default function Dashboard() {
             </h2>
             <p className="mt-3 text-sm leading-6 text-app-text-muted">
               Use this dashboard to stay on top of upcoming meetings, role
-              coverage, and club momentum without being stuck in a phone-sized layout.
+              coverage, and club momentum without being stuck in a phone-sized
+              layout.
             </p>
-            <div className="mt-5 rounded-[1.35rem] bg-slate-50 p-4">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined rounded-full bg-primary/10 p-2 text-primary">
-                  insights
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-app-text">
-                    White dashboard migration complete
-                  </p>
-                  <p className="text-sm text-app-text-muted">
-                    Responsive layout now expands for tablet and desktop.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
       </section>

@@ -105,6 +105,31 @@ function parseOptionalNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function hasAssignmentChanges(
+  draft: RoleWorkflowDraft,
+  existingAssignment: MeetingRole | undefined,
+  roleName: string,
+) {
+  if (!existingAssignment) {
+    return true;
+  }
+
+  const normalizedStatus =
+    draft.status === "unassigned" ? "assigned" : draft.status;
+
+  return (
+    existingAssignment.member_id !== draft.memberId ||
+    (existingAssignment.status ?? "assigned") !== normalizedStatus ||
+    existingAssignment.completed_at !==
+      (normalizedStatus === "completed" ? existingAssignment.completed_at : null) ||
+    (existingAssignment.notes ?? "") !== draft.notes.trim() ||
+    existingAssignment.score !==
+      (isFacilitatorRole(roleName)
+        ? parseOptionalNumber(draft.facilitatorScore)
+        : null)
+  );
+}
+
 function buildDraft(
   assignment?: MeetingRole,
   grammarianReport?: GrammarianReport,
@@ -417,35 +442,36 @@ export default function RoleAssignment({
     setSavedRoleId(null);
 
     try {
+      let savedAssignment: MeetingRole | undefined = existingAssignment;
+
       if (!draft.memberId) {
         if (existingAssignment) {
           await deleteRole.mutateAsync({
             id: existingAssignment.id,
             meeting_id: meetingId,
           });
+          savedAssignment = undefined;
         }
-        setSavedRoleId(role.id);
-        return;
-      }
-
-      const normalizedStatus =
-        draft.status === "unassigned" ? "assigned" : draft.status;
-      const savedAssignment = await upsertRole.mutateAsync({
-        id: existingAssignment?.id,
-        meeting_id: meetingId,
-        role_id: role.id,
-        member_id: draft.memberId,
-        allow_duplicate: false,
-        status: normalizedStatus,
-        completed_at:
-          normalizedStatus === "completed"
-            ? existingAssignment?.completed_at ?? new Date().toISOString()
+      } else if (hasAssignmentChanges(draft, existingAssignment, role.name)) {
+        const normalizedStatus =
+          draft.status === "unassigned" ? "assigned" : draft.status;
+        savedAssignment = await upsertRole.mutateAsync({
+          id: existingAssignment?.id,
+          meeting_id: meetingId,
+          role_id: role.id,
+          member_id: draft.memberId,
+          allow_duplicate: false,
+          status: normalizedStatus,
+          completed_at:
+            normalizedStatus === "completed"
+              ? existingAssignment?.completed_at ?? new Date().toISOString()
+              : null,
+          notes: draft.notes.trim() || null,
+          score: isFacilitatorRole(role.name)
+            ? parseOptionalNumber(draft.facilitatorScore)
             : null,
-        notes: draft.notes.trim() || null,
-        score: isFacilitatorRole(role.name)
-          ? parseOptionalNumber(draft.facilitatorScore)
-          : null,
-      });
+        });
+      }
 
       if (role.name === "Ah-Counter") {
         await Promise.all(
@@ -478,6 +504,10 @@ export default function RoleAssignment({
       }
 
       if (role.name === "Grammarian") {
+        if (!savedAssignment) {
+          throw new Error("Assign a member to the Grammarian role before saving.");
+        }
+
         await upsertGrammarianReport.mutateAsync({
           id: grammarianReportMap[savedAssignment.id]?.id,
           meeting_role_id: savedAssignment.id,
@@ -491,6 +521,10 @@ export default function RoleAssignment({
       }
 
       if (role.name === "Evaluator") {
+        if (!savedAssignment) {
+          throw new Error("Assign a member to the Evaluator role before saving.");
+        }
+
         await upsertEvaluatorReport.mutateAsync({
           id: evaluatorReportMap[savedAssignment.id]?.id,
           meeting_role_id: savedAssignment.id,
@@ -504,6 +538,10 @@ export default function RoleAssignment({
       }
 
       if (role.name === "Timer") {
+        if (!savedAssignment) {
+          throw new Error("Assign a member to the Timer role before saving.");
+        }
+
         await upsertTimerReport.mutateAsync({
           id: timerReportMap[savedAssignment.id]?.id,
           meeting_role_id: savedAssignment.id,

@@ -41,21 +41,16 @@ export default function Members() {
       <section className="space-y-6 pt-8 pb-6 md:space-y-8 md:pt-10">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="app-eyebrow">
-              Active Roster
-            </p>
             <h1 className="mt-2 text-4xl font-semibold tracking-tight text-app-text md:text-[3rem]">
               Members
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-app-text-muted md:text-base">
-              Browse the club roster, track active members, and jump into
-              individual profiles from a cleaner responsive table layout.
-            </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="rounded-[1.35rem] border border-app-border bg-app-panel px-4 py-3 text-sm text-app-text-muted shadow-app-card">
-              <span className="font-semibold text-app-text">{members?.length ?? 0}</span>{" "}
+              <span className="font-semibold text-app-text">
+                {members?.length ?? 0}
+              </span>{" "}
               total members
             </div>
             <button
@@ -84,13 +79,17 @@ export default function Members() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
               Active
             </p>
-            <div className="mt-3 text-3xl font-bold text-app-text">{activeCount}</div>
+            <div className="mt-3 text-3xl font-bold text-app-text">
+              {activeCount}
+            </div>
           </div>
           <div className="app-panel rounded-[1.5rem] p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
               Inactive
             </p>
-            <div className="mt-3 text-3xl font-bold text-app-text">{inactiveCount}</div>
+            <div className="mt-3 text-3xl font-bold text-app-text">
+              {inactiveCount}
+            </div>
           </div>
         </div>
 
@@ -164,7 +163,10 @@ export default function Members() {
                   </thead>
                   <tbody className="divide-y divide-app-border">
                     {members.map((member) => (
-                      <tr key={member.id} className="transition hover:bg-app-panel-soft/40">
+                      <tr
+                        key={member.id}
+                        className="transition hover:bg-app-panel-soft/40"
+                      >
                         <td className="px-6 py-5 whitespace-nowrap">
                           <Link
                             to={`/members/${member.id}`}

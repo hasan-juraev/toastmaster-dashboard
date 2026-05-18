@@ -41,15 +41,55 @@ export function useUpsertMeetingRole() {
       role: Pick<MeetingRole, "meeting_id" | "role_id"> &
         Partial<Omit<MeetingRole, "id" | "meeting_id" | "role_id">> & { id?: string },
     ) => {
-      const { data, error } = await supabase
-        .from("meeting_roles")
-        .upsert(role)
-        .select()
-        .single();
+      const rolePayload = {
+        member_id: role.member_id,
+        allow_duplicate: role.allow_duplicate,
+        status: role.status,
+        completed_at: role.completed_at,
+        notes: role.notes,
+        score: role.score,
+      };
+
+      const runUpdate = async (id: string) =>
+        supabase
+          .from("meeting_roles")
+          .update(rolePayload)
+          .eq("id", id)
+          .select()
+          .single();
+
+      const runInsert = async () =>
+        supabase.from("meeting_roles").insert(role).select().single();
+
+      const { data, error } = role.id
+        ? await runUpdate(role.id)
+        : await runInsert();
 
       if (error) {
-        // Handle unique constraint violation for duplicate blocking
         if (error.code === "23505") {
+          const { data: existingRole, error: existingRoleError } = await supabase
+            .from("meeting_roles")
+            .select("id")
+            .eq("meeting_id", role.meeting_id)
+            .eq("role_id", role.role_id)
+            .maybeSingle();
+
+          if (existingRoleError) {
+            throw existingRoleError;
+          }
+
+          if (existingRole?.id) {
+            const { data: updatedRole, error: updateError } = await runUpdate(
+              existingRole.id,
+            );
+
+            if (updateError) {
+              throw updateError;
+            }
+
+            return updatedRole as MeetingRole;
+          }
+
           throw new Error(
             "Duplicate assignment blocked: This role is already assigned.",
           );

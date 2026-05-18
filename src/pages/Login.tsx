@@ -37,10 +37,10 @@ export default function Login() {
         <div className="mx-auto w-full max-w-[20rem] sm:max-w-sm">
           <div className="mb-7 pt-4 text-center sm:mb-10 sm:pt-0">
             <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.22em] text-primary sm:text-xs sm:tracking-[0.28em]">
-              Progress Tracker
+              GGLTM
             </p>
             <h1 className="mx-auto max-w-[14rem] text-[1.95rem] font-semibold tracking-tight text-app-text sm:max-w-none sm:text-4xl md:text-[2.8rem]">
-              GGLTM
+              Progress Tracker
             </h1>
             <p className="mx-auto mt-3 max-w-[17rem] text-sm leading-6 text-app-text-muted sm:max-w-none sm:text-base">
               Manage your club meetings, members, roles, and progress from a
@@ -79,7 +79,6 @@ export default function Login() {
                     type="email"
                     required
                     autoComplete="email"
-                    placeholder="name@club-domain.com"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     className="w-full rounded-2xl border border-app-border bg-app-panel-soft py-3.5 pl-11 pr-4 text-base text-app-text placeholder:text-app-text-subtle sm:pl-12"

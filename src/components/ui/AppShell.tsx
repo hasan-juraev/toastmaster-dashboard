@@ -60,7 +60,6 @@ function DesktopNav() {
             </span>
           </div> */}
           <div>
-            <p className="app-brand__eyebrow">Toastmasters Tracker</p>
             <p className="app-brand__name">Club Progress Dashboard</p>
           </div>
         </div>
