@@ -162,7 +162,7 @@ export function useAnalytics() {
           return;
         }
 
-        const label = MONTH_LABELS[new Date(meetingDate).getMonth()];
+        const label = MONTH_LABELS[new Date(meetingDate).getUTCMonth()];
         if (label in monthlyCounts) {
           monthlyCounts[label] = (monthlyCounts[label] ?? 0) + 1;
         }

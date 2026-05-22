@@ -96,19 +96,20 @@ export function useUpsertAhCounterReport() {
     mutationFn: async (
       report: Omit<AhCounterReport, "id" | "created_at"> & { id?: string },
     ) => {
-      const query = report.id
-        ? supabase
-            .from("ah_counter_reports")
-            .update({
-              meeting_id: report.meeting_id,
-              speaker_id: report.speaker_id,
-              ah_count: report.ah_count,
-              notes: report.notes,
-            })
-            .eq("id", report.id)
-        : supabase.from("ah_counter_reports").insert(report);
-
-      const { data, error } = await query.select().single();
+      const { data, error } = await supabase
+        .from("ah_counter_reports")
+        .upsert(
+          {
+            meeting_id: report.meeting_id,
+            speaker_id: report.speaker_id,
+            meeting_role_id: report.meeting_role_id,
+            ah_count: report.ah_count,
+            notes: report.notes,
+          },
+          { onConflict: "meeting_id,speaker_id" },
+        )
+        .select()
+        .single();
 
       if (error) throw error;
       return data as AhCounterReport;
@@ -163,21 +164,22 @@ export function useUpsertTimerReport() {
     mutationFn: async (
       report: Omit<TimerReport, "id" | "created_at"> & { id?: string },
     ) => {
-      const query = report.id
-        ? supabase
-            .from("timer_reports")
-            .update({
-              meeting_role_id: report.meeting_role_id,
-              meeting_id: report.meeting_id,
-              member_id: report.member_id,
-              target_seconds: report.target_seconds,
-              actual_seconds: report.actual_seconds,
-              notes: report.notes,
-            })
-            .eq("id", report.id)
-        : supabase.from("timer_reports").insert(report);
-
-      const { data, error } = await query.select().single();
+      const { data, error } = await supabase
+        .from("timer_reports")
+        .upsert(
+          {
+            meeting_role_id: report.meeting_role_id,
+            meeting_id: report.meeting_id,
+            member_id: report.member_id,
+            speech_id: report.speech_id,
+            target_seconds: report.target_seconds,
+            actual_seconds: report.actual_seconds,
+            notes: report.notes,
+          },
+          { onConflict: "meeting_id,speech_id" },
+        )
+        .select()
+        .single();
 
       if (error) throw error;
       return data as TimerReport;

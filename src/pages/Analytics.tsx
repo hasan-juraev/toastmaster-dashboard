@@ -25,7 +25,9 @@ function StatCard({ icon, label, value, eyebrow }: StatCardProps) {
     <div className="app-panel rounded-[1.6rem] p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <span className="material-symbols-outlined text-[1.3rem]">{icon}</span>
+          <span className="material-symbols-outlined text-[1.3rem]">
+            {icon}
+          </span>
         </div>
         {eyebrow ? (
           <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600">
@@ -73,7 +75,9 @@ export default function Analytics() {
   const diversityWidth = totalRoleCount > 0 ? `${roleDiversity}%` : "0%";
   const completionWidth = data ? `${data.roleCompletionRate}%` : "0%";
   const fillerTrend =
-    data?.fillerWordAvg && data.fillerWordAvg <= 4 ? "Excellent control" : "Improving";
+    data?.fillerWordAvg && data.fillerWordAvg <= 4
+      ? "Excellent control"
+      : "Improving";
 
   return (
     <AppShell>
@@ -84,10 +88,6 @@ export default function Analytics() {
             <h1 className="mt-2 text-[2rem] font-semibold tracking-tight text-app-text sm:text-[2.4rem]">
               Progress Dashboard
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-app-text-muted md:text-base">
-              Track role completion, member rotation, and quality signals across
-              the club from one dashboard.
-            </p>
           </div>
           <button
             type="button"
@@ -149,7 +149,9 @@ export default function Analytics() {
                     className="text-app-text-muted transition hover:text-primary"
                     title="More analytics options coming soon"
                   >
-                    <span className="material-symbols-outlined">more_horiz</span>
+                    <span className="material-symbols-outlined">
+                      more_horiz
+                    </span>
                   </button>
                 </div>
 
@@ -172,8 +174,16 @@ export default function Analytics() {
                             x2="0"
                             y2="1"
                           >
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.26} />
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.02} />
+                            <stop
+                              offset="5%"
+                              stopColor="#3b82f6"
+                              stopOpacity={0.26}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor="#3b82f6"
+                              stopOpacity={0.02}
+                            />
                           </linearGradient>
                         </defs>
                         <CartesianGrid
@@ -225,9 +235,6 @@ export default function Analytics() {
                     <h2 className="text-[1.8rem] font-semibold tracking-tight text-app-text">
                       Workflow Snapshot
                     </h2>
-                    <p className="text-sm text-app-text-muted">
-                      Coverage, completion, and role breadth.
-                    </p>
                   </div>
                   <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
                     {data?.roleCompletionRate ?? 0}% complete
@@ -236,7 +243,9 @@ export default function Analytics() {
 
                 <div className="mt-6 rounded-[1.25rem] bg-app-panel-soft p-5">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm text-app-text-muted">Completion rate</p>
+                    <p className="text-sm text-app-text-muted">
+                      Completion rate
+                    </p>
                     <p className="text-sm font-semibold text-app-text">
                       {data?.roleStatusCounts.completed ?? 0} completed
                     </p>
@@ -244,9 +253,7 @@ export default function Analytics() {
                   <div className="mt-3 text-[3rem] font-semibold leading-none text-app-text">
                     {data?.roleCompletionRate ?? 0}%
                   </div>
-                  <p className="mt-2 text-sm text-app-text-muted">
-                    Measured from role workflow status updates on meeting assignments.
-                  </p>
+
                   <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/80">
                     <div
                       className="h-full rounded-full bg-primary transition-[width]"
@@ -275,7 +282,9 @@ export default function Analytics() {
                     </p>
                   </div>
                   <div className="rounded-[1.25rem] border border-app-border p-4">
-                    <p className="text-sm text-app-text-muted">Role diversity</p>
+                    <p className="text-sm text-app-text-muted">
+                      Role diversity
+                    </p>
                     <p className="mt-2 text-2xl font-semibold text-app-text">
                       {roleDiversity}%
                     </p>
@@ -330,7 +339,9 @@ export default function Analytics() {
 
                     <div className="flex-1 space-y-3">
                       {data.roleDistribution.map((role) => {
-                        const percent = Math.round((role.count / totalRoleCount) * 100);
+                        const percent = Math.round(
+                          (role.count / totalRoleCount) * 100,
+                        );
 
                         return (
                           <div
@@ -374,7 +385,8 @@ export default function Analytics() {
                       {data?.fillerWordAvg ?? 0} fillers avg
                     </p>
                     <p className="mt-1 text-sm text-app-text-muted">
-                      {data?.fillerReportsLogged ?? 0} reports logged across speakers
+                      {data?.fillerReportsLogged ?? 0} reports logged across
+                      speakers
                     </p>
                   </div>
 
@@ -384,18 +396,22 @@ export default function Analytics() {
                       {data?.grammarianStats.avgErrors ?? 0} errors avg
                     </p>
                     <p className="mt-1 text-sm text-app-text-muted">
-                      {data?.grammarianStats.notablePhrasesAvg ?? 0} notable phrases,
-                      score {data?.grammarianStats.avgScore ?? 0}/10
+                      {data?.grammarianStats.notablePhrasesAvg ?? 0} notable
+                      phrases, score {data?.grammarianStats.avgScore ?? 0}/10
                     </p>
                   </div>
 
                   <div className="rounded-[1.25rem] bg-slate-50 p-4">
-                    <p className="text-sm text-app-text-muted">Speaker coverage</p>
+                    <p className="text-sm text-app-text-muted">
+                      Speaker coverage
+                    </p>
                     <p className="mt-2 text-2xl font-semibold text-app-text">
                       {data?.speakerCompletionRate ?? 0}% complete
                     </p>
                     <p className="mt-1 text-sm text-app-text-muted">
-                      {data?.speechesDelivered ?? 0} of {data?.totalSpeechesPlanned ?? 0} planned speeches delivered
+                      {data?.speechesDelivered ?? 0} of{" "}
+                      {data?.totalSpeechesPlanned ?? 0} planned speeches
+                      delivered
                     </p>
                   </div>
 
@@ -405,7 +421,8 @@ export default function Analytics() {
                       {data?.evaluatorStats.avgQuality ?? 0}/10 quality
                     </p>
                     <p className="mt-1 text-sm text-app-text-muted">
-                      {data?.evaluatorStats.reportsLogged ?? 0} evaluator reports logged
+                      {data?.evaluatorStats.reportsLogged ?? 0} evaluator
+                      reports logged
                     </p>
                   </div>
 
@@ -415,7 +432,8 @@ export default function Analytics() {
                       {data?.timerStats.avgDelta ?? 0}s average drift
                     </p>
                     <p className="mt-1 text-sm text-app-text-muted">
-                      {data?.timerStats.onTimeRate ?? 0}% of logged timings finished within 15 seconds
+                      {data?.timerStats.onTimeRate ?? 0}% of logged timings
+                      finished within 15 seconds
                     </p>
                   </div>
 
@@ -425,8 +443,9 @@ export default function Analytics() {
                       {data?.facilitatorStats.avgScore ?? 0}/10 average score
                     </p>
                     <p className="mt-1 text-sm text-app-text-muted">
-                      Toastmaster {data?.facilitatorStats.toastmasterAvg ?? 0}/10,
-                      General Evaluator {data?.facilitatorStats.generalEvaluatorAvg ?? 0}/10
+                      Toastmaster {data?.facilitatorStats.toastmasterAvg ?? 0}
+                      /10, General Evaluator{" "}
+                      {data?.facilitatorStats.generalEvaluatorAvg ?? 0}/10
                     </p>
                   </div>
                 </div>

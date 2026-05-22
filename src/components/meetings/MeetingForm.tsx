@@ -8,7 +8,7 @@ const meetingSchema = z.object({
   date: z.string().min(1, "Date is required"),
   theme: z.string().optional().or(z.literal("")),
   location: z.string().optional().or(z.literal("")),
-  status: z.enum(["upcoming", "completed"]).optional(),
+  status: z.enum(["upcoming", "in_progress", "completed", "cancelled"]).optional(),
 });
 
 type MeetingFormData = z.infer<typeof meetingSchema>;
@@ -32,7 +32,7 @@ export default function MeetingForm({ meeting, onClose }: MeetingFormProps) {
       date: meeting?.date || "",
       theme: meeting?.theme || "",
       location: meeting?.location || "",
-      status: (meeting?.status as "upcoming" | "completed") || "upcoming",
+      status: meeting?.status || "upcoming",
     },
   });
 
@@ -127,7 +127,9 @@ export default function MeetingForm({ meeting, onClose }: MeetingFormProps) {
                 className="mt-1 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-app-text"
               >
                 <option value="upcoming">Upcoming</option>
+                <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
               </select>
             </div>
           )}

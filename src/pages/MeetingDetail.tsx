@@ -3,8 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import type { Meeting } from "../types/database";
 import RoleAssignment from "../components/meetings/RoleAssignment";
+import VotingSection from "../components/meetings/VotingSection";
+import SpeechComments from "../components/meetings/SpeechComments";
 import { AppShell } from "../components/ui/AppShell";
-import { useMeetingRoles, useRoles } from "../hooks/useRoles";
+import { useMeetingRoles } from "../hooks/useRoles";
 
 interface MeetingSpeech {
   id: string;
@@ -22,25 +24,22 @@ interface MeetingDetailData {
 
 export default function MeetingDetail() {
   const { id } = useParams<{ id: string }>();
-  const { data: roles } = useRoles();
   const { data: meetingRoles } = useMeetingRoles(id ?? "");
 
-  const {
-    data,
-    isLoading,
-    error,
-  } = useQuery<MeetingDetailData>({
+  const { data, isLoading, error } = useQuery<MeetingDetailData>({
     queryKey: ["meeting-detail", id],
     queryFn: async () => {
-      const [{ data: meeting, error: meetingError }, { data: speeches, error: speechesError }] =
-        await Promise.all([
-          supabase.from("meetings").select("*").eq("id", id).single(),
-          supabase
-            .from("speeches")
-            .select("id, title, manual_time, completed, speaker_id, evaluator_id")
-            .eq("meeting_id", id)
-            .order("created_at", { ascending: true }),
-        ]);
+      const [
+        { data: meeting, error: meetingError },
+        { data: speeches, error: speechesError },
+      ] = await Promise.all([
+        supabase.from("meetings").select("*").eq("id", id).single(),
+        supabase
+          .from("speeches")
+          .select("id, title, manual_time, completed, speaker_id, evaluator_id")
+          .eq("meeting_id", id)
+          .order("created_at", { ascending: true }),
+      ]);
 
       if (meetingError) throw meetingError;
       if (speechesError) throw speechesError;
@@ -55,12 +54,15 @@ export default function MeetingDetail() {
 
   const meeting = data?.meeting;
   const speeches = data?.speeches ?? [];
-  const assignedCount = meetingRoles?.filter((assignment) => assignment.member_id).length ?? 0;
-  const openCount = Math.max((roles?.length ?? 0) - assignedCount, 0);
+  const assignedCount =
+    meetingRoles?.filter((assignment) => assignment.member_id).length ?? 0;
+  const openCount = meetingRoles?.filter((r) => !r.member_id).length ?? 0;
   const inProgressCount =
-    meetingRoles?.filter((assignment) => assignment.status === "in_progress").length ?? 0;
+    meetingRoles?.filter((assignment) => assignment.status === "in_progress")
+      .length ?? 0;
   const completedRoleCount =
-    meetingRoles?.filter((assignment) => assignment.status === "completed").length ?? 0;
+    meetingRoles?.filter((assignment) => assignment.status === "completed")
+      .length ?? 0;
 
   if (isLoading) {
     return (
@@ -93,7 +95,7 @@ export default function MeetingDetail() {
           </Link>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="grid gap-6 xl:grid-cols-1">
           <div className="app-panel rounded-[2rem] p-6 md:p-7">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -132,7 +134,9 @@ export default function MeetingDetail() {
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
                   Open Roles
                 </p>
-                <div className="mt-2 text-3xl font-bold text-app-text">{openCount}</div>
+                <div className="mt-2 text-3xl font-bold text-app-text">
+                  {openCount}
+                </div>
               </div>
               <div className="rounded-[1.35rem] bg-app-panel-soft p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
@@ -152,33 +156,14 @@ export default function MeetingDetail() {
               </div>
             </div>
           </div>
-
-          <div className="app-panel rounded-[2rem] p-6">
-            <p className="app-eyebrow">Meeting health</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-app-text">
-              At-a-glance
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-app-text-muted">
-              Use this workspace to fill remaining roles, review planned speeches,
-              and keep the session organized before the meeting starts.
-            </p>
-            <div className="mt-5 rounded-[1.35rem] bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-app-text">
-                {openCount > 0 ? `${openCount} roles still need coverage` : "Role board is covered"}
-              </p>
-              <p className="mt-2 text-sm text-app-text-muted">
-                {openCount > 0
-                  ? "Assign members below to close out the agenda."
-                  : completedRoleCount > 0
-                    ? "Use the workflow cards below to finish scoring and notes."
-                    : "You are ready to focus on speeches and facilitation."}
-              </p>
-            </div>
-          </div>
         </div>
 
         <div className="app-panel rounded-[2rem] p-6">
           <RoleAssignment meetingId={meeting.id} speeches={speeches} />
+        </div>
+
+        <div className="app-panel rounded-[2rem] p-6">
+          <VotingSection meetingId={meeting.id} />
         </div>
 
         <div className="app-panel rounded-[2rem] p-6">
@@ -220,12 +205,14 @@ export default function MeetingDetail() {
                       {speech.completed ? "Completed" : "Planned"}
                     </span>
                   </div>
+                  <SpeechComments speechId={speech.id} />
                 </article>
               ))}
             </div>
           ) : (
             <div className="mt-5 rounded-[1.25rem] border border-dashed border-app-border bg-app-panel-soft p-8 text-center text-app-text-muted">
-              No speeches added yet. Add speeches in the data layer and they will appear here.
+              No speeches added yet. Add speeches in the data layer and they
+              will appear here.
             </div>
           )}
         </div>

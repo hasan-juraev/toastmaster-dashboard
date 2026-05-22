@@ -6,12 +6,14 @@ export interface Member {
   created_at: string;
 }
 
+export type MeetingStatus = "upcoming" | "in_progress" | "completed" | "cancelled";
+
 export interface Meeting {
   id: string;
   date: string;
   theme: string | null;
   location: string | null;
-  status: string;
+  status: MeetingStatus;
   created_at: string;
 }
 
@@ -32,7 +34,6 @@ export interface MeetingRole {
   meeting_id: string;
   role_id: string;
   member_id: string | null;
-  allow_duplicate: boolean;
   status: MeetingRoleStatus | null;
   completed_at: string | null;
   notes: string | null;
@@ -52,7 +53,7 @@ export interface Speech {
 
 export interface GrammarianReport {
   id: string;
-  meeting_role_id: string | null;
+  meeting_role_id: string;
   meeting_id: string | null;
   member_id: string | null;
   grammar_errors: number;
@@ -66,14 +67,15 @@ export interface AhCounterReport {
   id: string;
   meeting_id: string | null;
   speaker_id: string | null;
+  meeting_role_id: string | null;
   ah_count: number;
   notes: string | null;
-  created_at?: string;
+  created_at: string;
 }
 
 export interface EvaluatorReport {
   id: string;
-  meeting_role_id: string | null;
+  meeting_role_id: string;
   meeting_id: string | null;
   member_id: string | null;
   speech_id: string | null;
@@ -85,18 +87,34 @@ export interface EvaluatorReport {
 
 export interface TimerReport {
   id: string;
-  meeting_role_id: string | null;
+  meeting_role_id: string;
   meeting_id: string | null;
   member_id: string | null;
+  speech_id: string | null;
   target_seconds: number | null;
   actual_seconds: number | null;
   notes: string | null;
   created_at: string;
 }
 
+export interface SpeechComment {
+  id: string;
+  speech_id: string;
+  commenter_id: string | null;
+  comment: string;
+  created_at: string;
+}
+
+export type VoteCategory =
+  | "Best Speaker"
+  | "Best Table Topics Speaker"
+  | "Best Evaluator";
+
 export interface Vote {
   id: string;
   meeting_id: string | null;
-  category: string | null;
+  voter_id: string | null;
+  category: VoteCategory | null;
   voted_for_member_id: string | null;
+  created_at: string;
 }

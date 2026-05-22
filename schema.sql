@@ -14,7 +14,9 @@ create table meetings (
   theme text,
   location text,
   status text default 'upcoming',
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  constraint meetings_status_check
+    check (status in ('upcoming', 'in_progress', 'completed', 'cancelled'))
 );
 
 -- ROLES
@@ -29,7 +31,6 @@ create table meeting_roles (
   meeting_id uuid references meetings on delete cascade,
   role_id uuid references roles,
   member_id uuid references members,
-  allow_duplicate boolean default false,
   status text default 'unassigned',
   completed_at timestamptz,
   notes text,
@@ -49,10 +50,10 @@ create index meeting_roles_role_id_idx on meeting_roles (role_id);
 create table speeches (
   id uuid primary key default gen_random_uuid(),
   meeting_id uuid references meetings on delete cascade,
-  speaker_id uuid references members,
+  speaker_id uuid references members(id) on delete set null,
   title text,
   manual_time text,
-  evaluator_id uuid references members,
+  evaluator_id uuid references members(id) on delete set null,
   completed boolean default false,
   created_at timestamptz default now()
 );
@@ -65,7 +66,7 @@ create index speeches_created_at_idx on speeches (created_at);
 -- GRAMMARIAN
 create table grammarian_reports (
   id uuid primary key default gen_random_uuid(),
-  meeting_role_id uuid unique references meeting_roles on delete cascade,
+  meeting_role_id uuid not null unique references meeting_roles on delete cascade,
   meeting_id uuid references meetings on delete cascade,
   member_id uuid references members,
   grammar_errors int default 0,
@@ -86,16 +87,22 @@ create index grammarian_reports_member_id_idx on grammarian_reports (member_id);
 -- AH COUNTER
 create table ah_counter_reports (
   id uuid primary key default gen_random_uuid(),
-  meeting_id uuid,
-  speaker_id uuid,
+  meeting_id uuid references meetings(id) on delete cascade,
+  speaker_id uuid references members(id) on delete set null,
   ah_count int default 0,
-  notes text
+  notes text,
+  created_at timestamptz default now(),
+  meeting_role_id uuid references meeting_roles(id) on delete set null,
+  constraint ah_counter_one_per_speaker_per_meeting unique (meeting_id, speaker_id)
 );
+
+create index ah_counter_reports_meeting_id_idx on ah_counter_reports(meeting_id);
+create index ah_counter_reports_speaker_id_idx on ah_counter_reports(speaker_id);
 
 -- EVALUATOR
 create table evaluator_reports (
   id uuid primary key default gen_random_uuid(),
-  meeting_role_id uuid unique references meeting_roles on delete cascade,
+  meeting_role_id uuid not null unique references meeting_roles on delete cascade,
   meeting_id uuid references meetings on delete cascade,
   member_id uuid references members,
   speech_id uuid references speeches on delete set null,
@@ -115,13 +122,15 @@ create index evaluator_reports_speech_id_idx on evaluator_reports (speech_id);
 -- TIMER
 create table timer_reports (
   id uuid primary key default gen_random_uuid(),
-  meeting_role_id uuid unique references meeting_roles on delete cascade,
+  meeting_role_id uuid not null references meeting_roles on delete cascade,
   meeting_id uuid references meetings on delete cascade,
   member_id uuid references members,
+  speech_id uuid references speeches(id) on delete set null,
   target_seconds int,
   actual_seconds int,
   notes text,
   created_at timestamptz default now(),
+  constraint timer_one_per_speech_per_meeting unique (meeting_id, speech_id),
   constraint timer_reports_seconds_nonnegative_check
     check (
       (target_seconds is null or target_seconds >= 0)
@@ -136,10 +145,35 @@ create index timer_reports_member_id_idx on timer_reports (member_id);
 -- VOTES
 create table votes (
   id uuid primary key default gen_random_uuid(),
-  meeting_id uuid,
+  meeting_id uuid references meetings(id) on delete cascade,
+  voter_id uuid references members(id) on delete set null,
   category text,
-  voted_for_member_id uuid
+  voted_for_member_id uuid references members(id) on delete set null,
+  created_at timestamptz default now(),
+  constraint votes_category_check
+    check (category in ('Best Speaker', 'Best Table Topics Speaker', 'Best Evaluator'))
 );
+
+-- One vote per voter per meeting per category (NULL voter_id = anonymous/admin-recorded)
+create unique index votes_one_per_voter_per_category
+  on votes (meeting_id, voter_id, category)
+  where voter_id is not null;
+
+create index votes_meeting_id_idx on votes(meeting_id);
+create index votes_voter_id_idx on votes(voter_id);
+create index votes_voted_for_member_id_idx on votes(voted_for_member_id);
+
+-- SPEECH COMMENTS
+create table speech_comments (
+  id uuid primary key default gen_random_uuid(),
+  speech_id uuid not null references speeches(id) on delete cascade,
+  commenter_id uuid references members(id) on delete set null,
+  comment text not null,
+  created_at timestamptz default now()
+);
+
+create index speech_comments_speech_id_idx on speech_comments(speech_id);
+create index speech_comments_commenter_id_idx on speech_comments(commenter_id);
 
 -- SEED ROLES
 insert into roles (name) values

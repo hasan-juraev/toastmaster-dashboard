@@ -49,12 +49,16 @@ interface RoleWorkflowDraft {
   qualityScore: string;
   strengths: string;
   improvementNotes: string;
-  targetSeconds: string;
-  actualSeconds: string;
 }
 
 interface AhCounterSpeakerDraft {
   ahCount: string;
+  notes: string;
+}
+
+interface TimerSpeakerDraft {
+  targetSeconds: string;
+  actualSeconds: string;
   notes: string;
 }
 
@@ -121,7 +125,9 @@ function hasAssignmentChanges(
     existingAssignment.member_id !== draft.memberId ||
     (existingAssignment.status ?? "assigned") !== normalizedStatus ||
     existingAssignment.completed_at !==
-      (normalizedStatus === "completed" ? existingAssignment.completed_at : null) ||
+      (normalizedStatus === "completed"
+        ? existingAssignment.completed_at
+        : null) ||
     (existingAssignment.notes ?? "") !== draft.notes.trim() ||
     existingAssignment.score !==
       (isFacilitatorRole(roleName)
@@ -134,13 +140,8 @@ function buildDraft(
   assignment?: MeetingRole,
   grammarianReport?: GrammarianReport,
   evaluatorReport?: EvaluatorReport,
-  timerReport?: TimerReport,
 ): RoleWorkflowDraft {
-  const notes =
-    timerReport?.notes ??
-    grammarianReport?.notes ??
-    assignment?.notes ??
-    "";
+  const notes = grammarianReport?.notes ?? assignment?.notes ?? "";
 
   return {
     memberId: assignment?.member_id ?? "",
@@ -154,8 +155,14 @@ function buildDraft(
     qualityScore: toInputValue(evaluatorReport?.quality_score),
     strengths: evaluatorReport?.strengths ?? "",
     improvementNotes: evaluatorReport?.improvement_notes ?? "",
-    targetSeconds: toInputValue(timerReport?.target_seconds),
-    actualSeconds: toInputValue(timerReport?.actual_seconds),
+  };
+}
+
+function buildTimerDraft(report?: TimerReport): TimerSpeakerDraft {
+  return {
+    targetSeconds: toInputValue(report?.target_seconds),
+    actualSeconds: toInputValue(report?.actual_seconds),
+    notes: report?.notes ?? "",
   };
 }
 
@@ -214,14 +221,12 @@ export default function RoleAssignment({
     data: meetingRoles,
     isLoading: loadingMeetingRoles,
     error: meetingRolesError,
-  } =
-    useMeetingRoles(meetingId);
+  } = useMeetingRoles(meetingId);
   const {
     data: roleReports,
     isLoading: loadingReports,
     error: roleReportsError,
-  } =
-    useMeetingRoleReports(meetingId);
+  } = useMeetingRoleReports(meetingId);
   const upsertRole = useUpsertMeetingRole();
   const deleteRole = useDeleteMeetingRole();
   const upsertAhCounterReport = useUpsertAhCounterReport();
@@ -232,19 +237,27 @@ export default function RoleAssignment({
   const [ahCounterDrafts, setAhCounterDrafts] = useState<
     Record<string, AhCounterSpeakerDraft>
   >({});
+  const [timerDrafts, setTimerDrafts] = useState<
+    Record<string, TimerSpeakerDraft>
+  >({});
   const [error, setError] = useState<string | null>(null);
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [savedRoleId, setSavedRoleId] = useState<string | null>(null);
 
   const memberNameLookup = useMemo(
     () =>
-      Object.fromEntries((members ?? []).map((member) => [member.id, member.name])),
+      Object.fromEntries(
+        (members ?? []).map((member) => [member.id, member.name]),
+      ),
     [members],
   );
   const meetingRoleMap = useMemo(
     () =>
       Object.fromEntries(
-        (meetingRoles ?? []).map((assignment) => [assignment.role_id, assignment]),
+        (meetingRoles ?? []).map((assignment) => [
+          assignment.role_id,
+          assignment,
+        ]),
       ),
     [meetingRoles],
   );
@@ -279,8 +292,8 @@ export default function RoleAssignment({
     () =>
       Object.fromEntries(
         (roleReports?.timerReports ?? [])
-          .filter((report) => report.meeting_role_id)
-          .map((report) => [report.meeting_role_id as string, report]),
+          .filter((report) => report.speech_id)
+          .map((report) => [report.speech_id as string, report]),
       ),
     [roleReports?.timerReports],
   );
@@ -293,7 +306,7 @@ export default function RoleAssignment({
         key,
         speakerId: speech.speaker_id,
         speakerName: speech.speaker_id
-          ? memberNameLookup[speech.speaker_id] ?? "Unknown speaker"
+          ? (memberNameLookup[speech.speaker_id] ?? "Unknown speaker")
           : `Speaker slot ${index + 1}`,
         titles: [],
         completedCount: 0,
@@ -335,27 +348,15 @@ export default function RoleAssignment({
           const evaluatorReport = assignment
             ? evaluatorReportMap[assignment.id]
             : undefined;
-          const timerReport = assignment ? timerReportMap[assignment.id] : undefined;
 
           return [
             role.id,
-            buildDraft(
-              assignment,
-              grammarianReport,
-              evaluatorReport,
-              timerReport,
-            ),
+            buildDraft(assignment, grammarianReport, evaluatorReport),
           ];
         }),
       ),
     );
-  }, [
-    evaluatorReportMap,
-    grammarianReportMap,
-    meetingRoleMap,
-    roles,
-    timerReportMap,
-  ]);
+  }, [evaluatorReportMap, grammarianReportMap, meetingRoleMap, roles]);
 
   useEffect(() => {
     setAhCounterDrafts(
@@ -365,12 +366,25 @@ export default function RoleAssignment({
           .map((summary) => [
             summary.key,
             buildAhCounterDraft(
-              summary.speakerId ? ahCounterReportMap[summary.speakerId] : undefined,
+              summary.speakerId
+                ? ahCounterReportMap[summary.speakerId]
+                : undefined,
             ),
           ]),
       ),
     );
   }, [ahCounterReportMap, speakerSummaries]);
+
+  useEffect(() => {
+    setTimerDrafts(
+      Object.fromEntries(
+        speeches.map((speech) => [
+          speech.id,
+          buildTimerDraft(timerReportMap[speech.id]),
+        ]),
+      ),
+    );
+  }, [timerReportMap, speeches]);
 
   if (loadingRoles || loadingMembers || loadingMeetingRoles || loadingReports) {
     return (
@@ -429,6 +443,24 @@ export default function RoleAssignment({
     }));
   };
 
+  const updateTimerDraft = (
+    speechId: string,
+    updates: Partial<TimerSpeakerDraft>,
+  ) => {
+    setSavedRoleId(null);
+    setTimerDrafts((current) => ({
+      ...current,
+      [speechId]: {
+        ...(current[speechId] ?? {
+          targetSeconds: "",
+          actualSeconds: "",
+          notes: "",
+        }),
+        ...updates,
+      },
+    }));
+  };
+
   const handleSave = async (role: Role) => {
     const draft = drafts[role.id];
     const existingAssignment = meetingRoleMap[role.id];
@@ -460,11 +492,10 @@ export default function RoleAssignment({
           meeting_id: meetingId,
           role_id: role.id,
           member_id: draft.memberId,
-          allow_duplicate: false,
           status: normalizedStatus,
           completed_at:
             normalizedStatus === "completed"
-              ? existingAssignment?.completed_at ?? new Date().toISOString()
+              ? (existingAssignment?.completed_at ?? new Date().toISOString())
               : null,
           notes: draft.notes.trim() || null,
           score: isFacilitatorRole(role.name)
@@ -493,9 +524,9 @@ export default function RoleAssignment({
               }
 
               await upsertAhCounterReport.mutateAsync({
-                ...(existingReport?.id ? { id: existingReport.id } : {}),
                 meeting_id: meetingId,
                 speaker_id: summary.speakerId ?? null,
+                meeting_role_id: savedAssignment?.id ?? null,
                 ah_count: parseOptionalNumber(reportDraft.ahCount) ?? 0,
                 notes: reportDraft.notes.trim() || null,
               });
@@ -505,7 +536,9 @@ export default function RoleAssignment({
 
       if (role.name === "Grammarian") {
         if (!savedAssignment) {
-          throw new Error("Assign a member to the Grammarian role before saving.");
+          throw new Error(
+            "Assign a member to the Grammarian role before saving.",
+          );
         }
 
         await upsertGrammarianReport.mutateAsync({
@@ -522,7 +555,9 @@ export default function RoleAssignment({
 
       if (role.name === "Evaluator") {
         if (!savedAssignment) {
-          throw new Error("Assign a member to the Evaluator role before saving.");
+          throw new Error(
+            "Assign a member to the Evaluator role before saving.",
+          );
         }
 
         await upsertEvaluatorReport.mutateAsync({
@@ -542,15 +577,32 @@ export default function RoleAssignment({
           throw new Error("Assign a member to the Timer role before saving.");
         }
 
-        await upsertTimerReport.mutateAsync({
-          id: timerReportMap[savedAssignment.id]?.id,
-          meeting_role_id: savedAssignment.id,
-          meeting_id: meetingId,
-          member_id: draft.memberId,
-          target_seconds: parseOptionalNumber(draft.targetSeconds),
-          actual_seconds: parseOptionalNumber(draft.actualSeconds),
-          notes: draft.notes.trim() || null,
-        });
+        await Promise.all(
+          speeches.map(async (speech) => {
+            const timerDraft = timerDrafts[speech.id];
+            const existingReport = timerReportMap[speech.id];
+
+            if (
+              !timerDraft ||
+              (!timerDraft.targetSeconds.trim() &&
+                !timerDraft.actualSeconds.trim() &&
+                !timerDraft.notes.trim() &&
+                !existingReport)
+            ) {
+              return;
+            }
+
+            await upsertTimerReport.mutateAsync({
+              meeting_role_id: savedAssignment.id,
+              meeting_id: meetingId,
+              member_id: draft.memberId,
+              speech_id: speech.id,
+              target_seconds: parseOptionalNumber(timerDraft.targetSeconds),
+              actual_seconds: parseOptionalNumber(timerDraft.actualSeconds),
+              notes: timerDraft.notes.trim() || null,
+            });
+          }),
+        );
       }
 
       setSavedRoleId(role.id);
@@ -567,14 +619,11 @@ export default function RoleAssignment({
         <div>
           <p className="app-eyebrow">Assignments</p>
           <h2 className="mt-2 text-xl font-semibold text-app-text">
-            Role Workflows
+            Role Signup
           </h2>
-          <p className="mt-2 text-sm text-app-text-muted">
-            Assign members, mark progress, and capture role-specific insights in one place.
-          </p>
         </div>
         <div className="rounded-[1.2rem] bg-app-panel-soft px-4 py-3 text-sm text-app-text-muted">
-          Save each card after editing to keep analytics in sync.
+          Save each card after editing.
         </div>
       </div>
 
@@ -589,12 +638,6 @@ export default function RoleAssignment({
           const draft = drafts[role.id];
           const assignment = meetingRoleMap[role.id];
           const status = draft?.memberId ? draft.status : "unassigned";
-          const timerDelta =
-            parseOptionalNumber(draft?.actualSeconds ?? "") != null &&
-            parseOptionalNumber(draft?.targetSeconds ?? "") != null
-              ? (parseOptionalNumber(draft?.actualSeconds ?? "") ?? 0) -
-                (parseOptionalNumber(draft?.targetSeconds ?? "") ?? 0)
-              : null;
           const speakerRoleCompleted =
             speeches.length > 0 && speeches.every((speech) => speech.completed);
 
@@ -602,7 +645,9 @@ export default function RoleAssignment({
             <article key={role.id} className="app-panel rounded-[1.6rem] p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-app-text">{role.name}</h3>
+                  <h3 className="text-lg font-semibold text-app-text">
+                    {role.name}
+                  </h3>
                   {assignment?.completed_at ? (
                     <p className="mt-1 text-sm text-app-text-muted">
                       Completed on{" "}
@@ -610,17 +655,15 @@ export default function RoleAssignment({
                     </p>
                   ) : role.name === "Speaker" ? (
                     <p className="mt-1 text-sm text-app-text-muted">
-                      Track speech readiness and evaluator coverage for this meeting.
+                      Track speech readiness and evaluator coverage for this
+                      meeting.
                     </p>
                   ) : role.name === "Ah-Counter" ? (
                     <p className="mt-1 text-sm text-app-text-muted">
-                      Capture filler-word totals per speaker as the meeting unfolds.
+                      Capture filler-word totals per speaker as the meeting
+                      unfolds.
                     </p>
-                  ) : (
-                    <p className="mt-1 text-sm text-app-text-muted">
-                      Keep this role updated as the meeting progresses.
-                    </p>
-                  )}
+                  ) : null}
                 </div>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getStatusBadgeClasses(
@@ -741,7 +784,8 @@ export default function RoleAssignment({
                                   Evaluators
                                 </p>
                                 <p className="mt-1 text-lg font-semibold text-app-text">
-                                  {summary.evaluatorAssignedCount}/{summary.totalCount}
+                                  {summary.evaluatorAssignedCount}/
+                                  {summary.totalCount}
                                 </p>
                               </div>
                             </div>
@@ -831,7 +875,8 @@ export default function RoleAssignment({
                     </div>
                   ) : (
                     <div className="mt-4 rounded-[1.25rem] border border-dashed border-app-border bg-app-panel-soft p-5 text-sm text-app-text-muted">
-                      Add speakers to this meeting first. Ah-Counter entries are tracked per speaker.
+                      Add speakers to this meeting first. Ah-Counter entries are
+                      tracked per speaker.
                     </div>
                   )}
 
@@ -900,7 +945,9 @@ export default function RoleAssignment({
                         className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
                         value={draft?.grammarErrors ?? ""}
                         onChange={(event) =>
-                          updateDraft(role.id, { grammarErrors: event.target.value })
+                          updateDraft(role.id, {
+                            grammarErrors: event.target.value,
+                          })
                         }
                       />
                     </label>
@@ -914,7 +961,9 @@ export default function RoleAssignment({
                         className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
                         value={draft?.notablePhrases ?? ""}
                         onChange={(event) =>
-                          updateDraft(role.id, { notablePhrases: event.target.value })
+                          updateDraft(role.id, {
+                            notablePhrases: event.target.value,
+                          })
                         }
                       />
                     </label>
@@ -930,7 +979,9 @@ export default function RoleAssignment({
                         className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
                         value={draft?.grammarScore ?? ""}
                         onChange={(event) =>
-                          updateDraft(role.id, { grammarScore: event.target.value })
+                          updateDraft(role.id, {
+                            grammarScore: event.target.value,
+                          })
                         }
                       />
                     </label>
@@ -971,7 +1022,9 @@ export default function RoleAssignment({
                         {speeches.map((speech, index) => (
                           <option key={speech.id} value={speech.id}>
                             {speech.title || `Speech ${index + 1}`}
-                            {speech.manual_time ? ` • ${speech.manual_time}` : ""}
+                            {speech.manual_time
+                              ? ` • ${speech.manual_time}`
+                              : ""}
                           </option>
                         ))}
                       </select>
@@ -988,7 +1041,9 @@ export default function RoleAssignment({
                         className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
                         value={draft?.qualityScore ?? ""}
                         onChange={(event) =>
-                          updateDraft(role.id, { qualityScore: event.target.value })
+                          updateDraft(role.id, {
+                            qualityScore: event.target.value,
+                          })
                         }
                       />
                     </label>
@@ -1003,7 +1058,9 @@ export default function RoleAssignment({
                         className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
                         value={draft?.strengths ?? ""}
                         onChange={(event) =>
-                          updateDraft(role.id, { strengths: event.target.value })
+                          updateDraft(role.id, {
+                            strengths: event.target.value,
+                          })
                         }
                       />
                     </label>
@@ -1028,69 +1085,111 @@ export default function RoleAssignment({
 
               {role.name === "Timer" ? (
                 <>
-                  <div className="mt-4 grid gap-4 md:grid-cols-3">
-                    <label className="block">
-                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
-                        Target Seconds
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
-                        value={draft?.targetSeconds ?? ""}
-                        onChange={(event) =>
-                          updateDraft(role.id, { targetSeconds: event.target.value })
-                        }
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
-                        Actual Seconds
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
-                        value={draft?.actualSeconds ?? ""}
-                        onChange={(event) =>
-                          updateDraft(role.id, { actualSeconds: event.target.value })
-                        }
-                      />
-                    </label>
-                    <div className="rounded-[1.2rem] bg-app-panel-soft px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
-                        Delta
-                      </p>
-                      <p className="mt-3 text-2xl font-semibold text-app-text">
-                        {timerDelta == null
-                          ? "--"
-                          : `${timerDelta > 0 ? "+" : ""}${timerDelta}s`}
-                      </p>
-                      <p className="mt-2 text-sm text-app-text-muted">
-                        Negative means under target; positive means over.
-                      </p>
+                  {speeches.length ? (
+                    <div className="mt-4 grid gap-3">
+                      {speeches.map((speech, index) => {
+                        const timerDraft = timerDrafts[speech.id] ?? {
+                          targetSeconds: "",
+                          actualSeconds: "",
+                          notes: "",
+                        };
+                        const target = parseOptionalNumber(
+                          timerDraft.targetSeconds,
+                        );
+                        const actual = parseOptionalNumber(
+                          timerDraft.actualSeconds,
+                        );
+                        const delta =
+                          target != null && actual != null
+                            ? actual - target
+                            : null;
+
+                        return (
+                          <div
+                            key={speech.id}
+                            className="rounded-[1.2rem] border border-app-border bg-white/70 px-4 py-4"
+                          >
+                            <p className="text-sm font-semibold text-app-text">
+                              {speech.title || `Speech ${index + 1}`}
+                            </p>
+                            <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                              <label className="block">
+                                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                                  Target (s)
+                                </span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
+                                  value={timerDraft.targetSeconds}
+                                  onChange={(e) =>
+                                    updateTimerDraft(speech.id, {
+                                      targetSeconds: e.target.value,
+                                    })
+                                  }
+                                />
+                              </label>
+                              <label className="block">
+                                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                                  Actual (s)
+                                </span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
+                                  value={timerDraft.actualSeconds}
+                                  onChange={(e) =>
+                                    updateTimerDraft(speech.id, {
+                                      actualSeconds: e.target.value,
+                                    })
+                                  }
+                                />
+                              </label>
+                              <div className="rounded-[1.2rem] bg-app-panel-soft px-4 py-3">
+                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                                  Delta
+                                </p>
+                                <p className="mt-2 text-xl font-semibold text-app-text">
+                                  {delta == null
+                                    ? "--"
+                                    : `${delta > 0 ? "+" : ""}${delta}s`}
+                                </p>
+                              </div>
+                            </div>
+                            <label className="mt-3 block">
+                              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                                Notes
+                              </span>
+                              <textarea
+                                rows={2}
+                                className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
+                                value={timerDraft.notes}
+                                onChange={(e) =>
+                                  updateTimerDraft(speech.id, {
+                                    notes: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
-                  <label className="mt-4 block">
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
-                      Notes
-                    </span>
-                    <textarea
-                      rows={3}
-                      className="mt-2 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-sm text-app-text"
-                      value={draft?.notes ?? ""}
-                      onChange={(event) =>
-                        updateDraft(role.id, { notes: event.target.value })
-                      }
-                    />
-                  </label>
+                  ) : (
+                    <div className="mt-4 rounded-[1.25rem] border border-dashed border-app-border bg-app-panel-soft p-5 text-sm text-app-text-muted">
+                      Add speeches to this meeting first. Timer entries are
+                      tracked per speech.
+                    </div>
+                  )}
                 </>
               ) : null}
 
               {!isCustomRole(role.name) ? (
                 <div className="mt-4 space-y-4">
                   <div className="rounded-[1.25rem] border border-dashed border-app-border bg-app-panel-soft p-4 text-sm text-app-text-muted">
-                    This role does not have a dedicated analytics template yet, but it still participates in assignment and completion tracking.
+                    This role does not have a dedicated analytics template yet,
+                    but it still participates in assignment and completion
+                    tracking.
                   </div>
                   <label className="block">
                     <span className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
@@ -1113,10 +1212,10 @@ export default function RoleAssignment({
                   {savedRoleId === role.id
                     ? "Saved to meeting workflow."
                     : role.name === "Ah-Counter"
-                      ? "Use notes for breakdowns like ah, oh, and uhm until those are modeled separately."
+                      ? "Use notes for breakdowns like ah, oh, and uhm."
                       : role.name === "Speaker"
                         ? "Speaker progress comes from the meeting's speech records."
-                        : "Keep scores lightweight and consistent so trends stay meaningful."}
+                        : ""}
                 </p>
                 <button
                   type="button"
@@ -1127,8 +1226,8 @@ export default function RoleAssignment({
                   {savingRoleId === role.id
                     ? "Saving..."
                     : draft?.memberId
-                      ? "Save Workflow"
-                      : "Clear Assignment"}
+                      ? "Save"
+                      : "Clear"}
                 </button>
               </div>
             </article>
