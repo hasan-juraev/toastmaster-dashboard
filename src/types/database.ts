@@ -113,7 +113,7 @@ export type VoteCategory =
 export interface Vote {
   id: string;
   meeting_id: string | null;
-  voter_id: string | null;
+  voter_id: string;
   category: VoteCategory | null;
   voted_for_member_id: string | null;
   created_at: string;
