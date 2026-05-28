@@ -30,6 +30,8 @@
 
   html {
     background: rgb(var(--color-app-bg));
+    /* Respect notch/island safe areas */
+    padding-top: env(safe-area-inset-top);
   }
 
   body {
@@ -283,6 +285,15 @@ body {
     "wght" 400,
     "GRAD" 0,
     "opsz" 24;
+}
+
+/* Prevent iOS Safari from zooming on input focus (requires font-size >= 16px) */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 /* Neutralize browser autofill background overrides */

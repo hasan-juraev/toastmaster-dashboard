@@ -39,7 +39,7 @@ create table meeting_roles (
     check (status in ('unassigned', 'assigned', 'in_progress', 'completed', 'skipped')),
   constraint meeting_roles_score_range_check
     check (score is null or (score >= 0 and score <= 10)),
-  unique (meeting_id, role_id) deferrable initially deferred
+  unique (meeting_id, role_id)
 );
 
 create index meeting_roles_meeting_id_idx on meeting_roles (meeting_id);

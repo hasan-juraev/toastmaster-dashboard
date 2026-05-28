@@ -2,6 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import type { Role, MeetingRole } from "../types/database";
 
+export interface MeetingRoleWithDetails extends MeetingRole {
+  roles: { name: string } | null;
+  members: { name: string } | null;
+}
+
 export function useRoles() {
   return useQuery({
     queryKey: ["roles"],
@@ -86,5 +91,93 @@ export function useDeleteMeetingRole() {
         queryKey: ["meeting_roles", variables.meeting_id],
       });
     },
+  });
+}
+
+// Toggle signup_open flag on an existing meeting_role row
+export function useToggleSignupOpen() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, signup_open, meeting_id }: { id: string; signup_open: boolean; meeting_id: string }) => {
+      const { error } = await supabase
+        .from("meeting_roles")
+        .update({ signup_open })
+        .eq("id", id);
+      if (error) throw error;
+      return { meeting_id };
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["meeting_roles", variables.meeting_id] });
+      queryClient.invalidateQueries({ queryKey: ["open_meeting_roles", variables.meeting_id] });
+    },
+  });
+}
+
+// Race-condition-safe role claim via RPC
+export function useClaimMeetingRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (meetingRoleId: string) => {
+      const { data, error } = await supabase
+        .rpc("claim_meeting_role", { p_meeting_role_id: meetingRoleId });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meeting_roles"] });
+      queryClient.invalidateQueries({ queryKey: ["open_meeting_roles"] });
+      queryClient.invalidateQueries({ queryKey: ["my_meeting_role"] });
+    },
+  });
+}
+
+export function useUnclaimMeetingRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (meetingRoleId: string) => {
+      const { error } = await supabase
+        .rpc("unclaim_meeting_role", { p_meeting_role_id: meetingRoleId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meeting_roles"] });
+      queryClient.invalidateQueries({ queryKey: ["open_meeting_roles"] });
+      queryClient.invalidateQueries({ queryKey: ["my_meeting_role"] });
+    },
+  });
+}
+
+// Current user's role assignment for a specific meeting
+export function useMyMeetingRole(meetingId: string, memberId: string | null) {
+  return useQuery({
+    queryKey: ["my_meeting_role", meetingId, memberId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("meeting_roles")
+        .select("*, roles(name)")
+        .eq("meeting_id", meetingId)
+        .eq("member_id", memberId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as (MeetingRole & { roles: { name: string } | null }) | null;
+    },
+    enabled: !!meetingId && !!memberId,
+  });
+}
+
+// Open role slots for signup page (live polling every 10 seconds)
+export function useOpenMeetingRoles(meetingId: string) {
+  return useQuery({
+    queryKey: ["open_meeting_roles", meetingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("meeting_roles")
+        .select("*, roles(name), members(name)")
+        .eq("meeting_id", meetingId);
+      if (error) throw error;
+      return data as MeetingRoleWithDetails[];
+    },
+    enabled: !!meetingId,
+    refetchInterval: 10_000,
   });
 }

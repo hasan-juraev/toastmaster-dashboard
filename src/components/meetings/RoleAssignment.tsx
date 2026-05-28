@@ -4,6 +4,7 @@ import {
   useDeleteMeetingRole,
   useMeetingRoles,
   useRoles,
+  useToggleSignupOpen,
   useUpsertMeetingRole,
 } from "../../hooks/useRoles";
 import {
@@ -229,6 +230,7 @@ export default function RoleAssignment({
   } = useMeetingRoleReports(meetingId);
   const upsertRole = useUpsertMeetingRole();
   const deleteRole = useDeleteMeetingRole();
+  const toggleSignupOpen = useToggleSignupOpen();
   const upsertAhCounterReport = useUpsertAhCounterReport();
   const upsertGrammarianReport = useUpsertGrammarianReport();
   const upsertEvaluatorReport = useUpsertEvaluatorReport();
@@ -1208,15 +1210,48 @@ export default function RoleAssignment({
               ) : null}
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-app-text-muted">
-                  {savedRoleId === role.id
-                    ? "Saved to meeting workflow."
-                    : role.name === "Ah-Counter"
-                      ? "Use notes for breakdowns like ah, oh, and uhm."
-                      : role.name === "Speaker"
-                        ? "Speaker progress comes from the meeting's speech records."
-                        : ""}
-                </p>
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-app-text-muted">
+                    {savedRoleId === role.id
+                      ? "Saved to meeting workflow."
+                      : role.name === "Ah-Counter"
+                        ? "Use notes for breakdowns like ah, oh, and uhm."
+                        : role.name === "Speaker"
+                          ? "Speaker progress comes from the meeting's speech records."
+                          : ""}
+                  </p>
+                  {assignment && (
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={assignment.signup_open}
+                          onChange={() =>
+                            toggleSignupOpen.mutate({
+                              id: assignment.id,
+                              signup_open: !assignment.signup_open,
+                              meeting_id: meetingId,
+                            })
+                          }
+                        />
+                        <div
+                          className={`h-5 w-9 rounded-full transition ${
+                            assignment.signup_open ? "bg-primary" : "bg-app-border"
+                          }`}
+                        />
+                        <div
+                          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                            assignment.signup_open ? "translate-x-4" : "translate-x-0.5"
+                          }`}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-app-text-muted">
+                        Open for member signup
+                      </span>
+                    </label>
+                  )}
+                </div>
                 <button
                   type="button"
                   className="rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(59,130,246,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"

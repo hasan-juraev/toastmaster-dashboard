@@ -5,6 +5,8 @@ import type { VoteCategory } from "../../types/database";
 
 interface VotingSectionProps {
   meetingId: string;
+  currentMemberId?: string | null;
+  isAdmin?: boolean;
 }
 
 const CATEGORIES: { key: VoteCategory; label: string; description: string }[] = [
@@ -25,18 +27,21 @@ const CATEGORIES: { key: VoteCategory; label: string; description: string }[] = 
   },
 ];
 
-export default function VotingSection({ meetingId }: VotingSectionProps) {
+export default function VotingSection({ meetingId, currentMemberId, isAdmin }: VotingSectionProps) {
   const { data: members = [] } = useMembers();
   const { data: votes = [] } = useVotes(meetingId);
   const results = useVoteResults(meetingId, members);
   const submitVote = useSubmitVote();
 
+  // For non-admin: voter is pre-filled as the current member
+  const defaultVoterId = !isAdmin && currentMemberId ? currentMemberId : "";
+
   const [selections, setSelections] = useState<
     Record<VoteCategory, { voterId: string; votedForId: string }>
   >({
-    "Best Speaker": { voterId: "", votedForId: "" },
-    "Best Table Topics Speaker": { voterId: "", votedForId: "" },
-    "Best Evaluator": { voterId: "", votedForId: "" },
+    "Best Speaker": { voterId: defaultVoterId, votedForId: "" },
+    "Best Table Topics Speaker": { voterId: defaultVoterId, votedForId: "" },
+    "Best Evaluator": { voterId: defaultVoterId, votedForId: "" },
   });
 
   const [submitting, setSubmitting] = useState<VoteCategory | null>(null);
@@ -110,23 +115,33 @@ export default function VotingSection({ meetingId }: VotingSectionProps) {
               </div>
 
               <div className="space-y-2">
-                <select
-                  value={sel.voterId}
-                  onChange={(e) =>
-                    setSelections((s) => ({
-                      ...s,
-                      [key]: { ...s[key], voterId: e.target.value },
-                    }))
-                  }
-                  className="w-full rounded-xl border border-app-border bg-app-panel px-3 py-2.5 text-sm text-app-text"
-                >
-                  <option value="">Who is voting?</option>
-                  {activeMembers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
+                {/* Admin sees the "who is voting" dropdown; members have their identity pre-set */}
+                {isAdmin ? (
+                  <select
+                    value={sel.voterId}
+                    onChange={(e) =>
+                      setSelections((s) => ({
+                        ...s,
+                        [key]: { ...s[key], voterId: e.target.value },
+                      }))
+                    }
+                    className="w-full rounded-xl border border-app-border bg-app-panel px-3 py-2.5 text-sm text-app-text"
+                  >
+                    <option value="">Who is voting?</option>
+                    {activeMembers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : currentMemberId ? (
+                  <p className="text-sm font-medium text-app-text">
+                    Voting as:{" "}
+                    <span className="text-primary">
+                      {members.find((m) => m.id === currentMemberId)?.name ?? "You"}
+                    </span>
+                  </p>
+                ) : null}
 
                 <select
                   value={sel.votedForId}

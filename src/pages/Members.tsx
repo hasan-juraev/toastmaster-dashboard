@@ -4,6 +4,7 @@ import { useMembers } from "../hooks/useMembers";
 import type { Member } from "../types/database";
 import MemberForm from "../components/members/MemberForm";
 import { AppShell } from "../components/ui/AppShell";
+import { useProfile } from "../hooks/useProfile";
 
 function MemberStatusBadge({ active }: { active: boolean }) {
   return (
@@ -23,6 +24,7 @@ export default function Members() {
   const { data: members, isLoading, error } = useMembers();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const { isAdmin } = useProfile();
   const activeCount = members?.filter((member) => member.active).length ?? 0;
   const inactiveCount = (members?.length ?? 0) - activeCount;
 
@@ -53,12 +55,14 @@ export default function Members() {
               </span>{" "}
               total members
             </div>
-            <button
-              onClick={() => setIsFormOpen(true)}
-              className="rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(59,130,246,0.24)] transition hover:bg-primary/90"
-            >
-              Add Member
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsFormOpen(true)}
+                className="rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(59,130,246,0.24)] transition hover:bg-primary/90"
+              >
+                Add Member
+              </button>
+            )}
           </div>
         </div>
 
@@ -131,12 +135,14 @@ export default function Members() {
                     >
                       View
                     </Link>
-                    <button
-                      onClick={() => handleEdit(member)}
-                      className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white"
-                    >
-                      Edit
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleEdit(member)}
+                        className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </div>
                 </article>
               ))}
@@ -182,12 +188,14 @@ export default function Members() {
                           <MemberStatusBadge active={member.active} />
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap text-right">
-                          <button
-                            onClick={() => handleEdit(member)}
-                            className="text-sm font-medium text-primary hover:text-primary/80"
-                          >
-                            Edit
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleEdit(member)}
+                              className="text-sm font-medium text-primary hover:text-primary/80"
+                            >
+                              Edit
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

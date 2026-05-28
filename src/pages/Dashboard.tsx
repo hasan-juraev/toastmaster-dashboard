@@ -126,7 +126,7 @@ export default function Dashboard() {
           <div className="app-panel overflow-hidden rounded-[2rem] p-6 md:p-7">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="app-eyebrow">Next Event</p>
+                <p className="app-eyebrow">Next Event Theme</p>
                 <h1 className="mt-2 text-[2rem] font-bold tracking-[-0.04em] text-app-text sm:text-[2.35rem] md:text-[3rem]">
                   {nextMeeting?.theme || "Morning Toastmasters"}
                 </h1>

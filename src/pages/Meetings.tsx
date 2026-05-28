@@ -4,6 +4,7 @@ import { useMeetings, useUpdateMeeting } from "../hooks/useMeetings";
 import type { Meeting } from "../types/database";
 import MeetingForm from "../components/meetings/MeetingForm";
 import { AppShell } from "../components/ui/AppShell";
+import { useProfile } from "../hooks/useProfile";
 
 function formatMeetingDate(date: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -33,6 +34,7 @@ export default function Meetings() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const updateMeeting = useUpdateMeeting();
+  const { isAdmin } = useProfile();
   const upcomingCount =
     meetings?.filter((meeting) => meeting.status === "upcoming").length ?? 0;
   const completedCount =
@@ -75,12 +77,14 @@ export default function Meetings() {
               </span>{" "}
               meetings tracked
             </div>
-            <button
-              onClick={() => setIsFormOpen(true)}
-              className="rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(59,130,246,0.24)] transition hover:bg-primary/90"
-            >
-              Add Meeting
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsFormOpen(true)}
+                className="rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(59,130,246,0.24)] transition hover:bg-primary/90"
+              >
+                Add Meeting
+              </button>
+            )}
           </div>
         </div>
 
@@ -156,18 +160,22 @@ export default function Meetings() {
                     >
                       Open
                     </Link>
-                    <button
-                      onClick={() => handleEdit(meeting)}
-                      className="rounded-xl border border-app-border bg-app-panel-soft px-4 py-3 text-sm font-medium text-app-text"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleStatusToggle(meeting)}
-                      className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white"
-                    >
-                      {meeting.status === "completed" ? "Reopen" : "Mark Done"}
-                    </button>
+                    {isAdmin && (
+                      <>
+                        <button
+                          onClick={() => handleEdit(meeting)}
+                          className="rounded-xl border border-app-border bg-app-panel-soft px-4 py-3 text-sm font-medium text-app-text"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleStatusToggle(meeting)}
+                          className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white"
+                        >
+                          {meeting.status === "completed" ? "Reopen" : "Mark Done"}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </article>
               ))}
@@ -216,17 +224,23 @@ export default function Meetings() {
                           {meeting.location || "-"}
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap">
-                          <button onClick={() => handleStatusToggle(meeting)}>
+                          {isAdmin ? (
+                            <button onClick={() => handleStatusToggle(meeting)}>
+                              <MeetingStatusBadge status={meeting.status} />
+                            </button>
+                          ) : (
                             <MeetingStatusBadge status={meeting.status} />
-                          </button>
+                          )}
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap text-right">
-                          <button
-                            onClick={() => handleEdit(meeting)}
-                            className="text-sm font-medium text-primary hover:text-primary/80"
-                          >
-                            Edit
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleEdit(meeting)}
+                              className="text-sm font-medium text-primary hover:text-primary/80"
+                            >
+                              Edit
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

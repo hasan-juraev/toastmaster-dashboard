@@ -1,3 +1,10 @@
+export interface Profile {
+  id: string;
+  member_id: string | null;
+  club_role: 'admin' | 'member';
+  created_at: string;
+}
+
 export interface Member {
   id: string;
   name: string;
@@ -14,6 +21,7 @@ export interface Meeting {
   theme: string | null;
   location: string | null;
   status: MeetingStatus;
+  theme_question: string | null;
   created_at: string;
 }
 
@@ -38,6 +46,7 @@ export interface MeetingRole {
   completed_at: string | null;
   notes: string | null;
   score: number | null;
+  signup_open: boolean;
 }
 
 export interface Speech {
@@ -48,6 +57,7 @@ export interface Speech {
   manual_time: string | null;
   evaluator_id: string | null;
   completed: boolean;
+  speech_plan: string | null;
   created_at: string;
 }
 

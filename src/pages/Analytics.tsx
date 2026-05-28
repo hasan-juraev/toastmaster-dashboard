@@ -86,7 +86,7 @@ export default function Analytics() {
           <div>
             <p className="app-eyebrow">Analytics</p>
             <h1 className="mt-2 text-[2rem] font-semibold tracking-tight text-app-text sm:text-[2.4rem]">
-              Progress Dashboard
+              Dashboard
             </h1>
           </div>
           <button

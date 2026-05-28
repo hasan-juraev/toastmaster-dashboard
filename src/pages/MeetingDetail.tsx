@@ -6,7 +6,9 @@ import RoleAssignment from "../components/meetings/RoleAssignment";
 import VotingSection from "../components/meetings/VotingSection";
 import SpeechComments from "../components/meetings/SpeechComments";
 import { AppShell } from "../components/ui/AppShell";
-import { useMeetingRoles } from "../hooks/useRoles";
+import { useMeetingRoles, useMyMeetingRole } from "../hooks/useRoles";
+import { useProfile } from "../hooks/useProfile";
+import { useMembers } from "../hooks/useMembers";
 
 interface MeetingSpeech {
   id: string;
@@ -22,9 +24,91 @@ interface MeetingDetailData {
   speeches: MeetingSpeech[];
 }
 
+function MemberRolesView({
+  meetingId,
+  memberId,
+}: {
+  meetingId: string;
+  memberId: string | null;
+}) {
+  const { data: meetingRoles = [] } = useMeetingRoles(meetingId);
+  const { data: members = [] } = useMembers();
+  const { data: myRole } = useMyMeetingRole(meetingId, memberId);
+
+  return (
+    <div>
+      <p className="app-eyebrow">Roles</p>
+      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-app-text">
+        Meeting Roles
+      </h2>
+
+      {myRole && (
+        <div className="mt-4 rounded-[1.35rem] border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-sm font-semibold text-emerald-700">
+            Your role:{" "}
+            <span className="font-bold">
+              {(myRole as { roles?: { name: string } | null }).roles?.name ?? "Assigned"}
+            </span>
+          </p>
+          <Link
+            to={`/my-role/${meetingId}`}
+            className="mt-1 inline-block text-sm font-medium text-emerald-600 underline-offset-2 hover:underline"
+          >
+            Go to My Role Dashboard →
+          </Link>
+        </div>
+      )}
+
+      {meetingRoles.length === 0 ? (
+        <p className="mt-4 text-sm text-app-text-muted">
+          No roles have been set up for this meeting yet.
+        </p>
+      ) : (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {meetingRoles.map((role) => {
+            const member = members.find((m) => m.id === role.member_id);
+            const isMyRole = role.member_id === memberId;
+            return (
+              <div
+                key={role.id}
+                className={`flex items-center justify-between gap-3 rounded-[1.25rem] border px-4 py-3 ${
+                  isMyRole
+                    ? "border-emerald-200 bg-emerald-50"
+                    : "border-app-border bg-app-panel-soft"
+                }`}
+              >
+                <div>
+                  <p className="text-sm font-semibold text-app-text">
+                    {(role as { roles?: { name: string } | null } & typeof role).roles?.name ?? "Role"}
+                  </p>
+                  <p className="text-xs text-app-text-muted">
+                    {member ? member.name : "Unassigned"}
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    role.status === "completed"
+                      ? "bg-emerald-50 text-emerald-600"
+                      : role.member_id
+                        ? "bg-blue-50 text-blue-600"
+                        : "bg-app-panel text-app-text-muted"
+                  }`}
+                >
+                  {role.status ?? (role.member_id ? "assigned" : "open")}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MeetingDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: meetingRoles } = useMeetingRoles(id ?? "");
+  const { isAdmin, memberId } = useProfile();
 
   const { data, isLoading, error } = useQuery<MeetingDetailData>({
     queryKey: ["meeting-detail", id],
@@ -159,11 +243,15 @@ export default function MeetingDetail() {
         </div>
 
         <div className="app-panel rounded-[2rem] p-6">
-          <RoleAssignment meetingId={meeting.id} speeches={speeches} />
+          {isAdmin ? (
+            <RoleAssignment meetingId={meeting.id} speeches={speeches} />
+          ) : (
+            <MemberRolesView meetingId={meeting.id} memberId={memberId} />
+          )}
         </div>
 
         <div className="app-panel rounded-[2rem] p-6">
-          <VotingSection meetingId={meeting.id} />
+          <VotingSection meetingId={meeting.id} currentMemberId={memberId} isAdmin={isAdmin} />
         </div>
 
         <div className="app-panel rounded-[2rem] p-6">
@@ -205,7 +293,11 @@ export default function MeetingDetail() {
                       {speech.completed ? "Completed" : "Planned"}
                     </span>
                   </div>
-                  <SpeechComments speechId={speech.id} />
+                  <SpeechComments
+                    speechId={speech.id}
+                    currentMemberId={memberId}
+                    isAdmin={isAdmin}
+                  />
                 </article>
               ))}
             </div>

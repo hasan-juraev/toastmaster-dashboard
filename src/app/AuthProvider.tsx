@@ -2,33 +2,71 @@ import { useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { AuthContext } from "./AuthContext";
+import type { Profile } from "../types/database";
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), ms),
+    ),
+  ]);
+}
+
+async function fetchProfile(userId: string): Promise<Profile | null> {
+  try {
+    const query = supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    const { data } = await withTimeout(Promise.resolve(query), 4000);
+    return (data as Profile | null) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    withTimeout(supabase.auth.getSession(), 5000)
+      .then(async ({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          const p = await fetchProfile(session.user.id);
+          setProfile(p);
+        }
+      })
+      .catch(() => {
+        // Backend unreachable or timed out — unblock the UI
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
-    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        const p = await fetchProfile(session.user.id);
+        setProfile(p);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  const memberId = profile?.member_id ?? null;
+  const isAdmin = profile?.club_role === "admin";
+
   return (
-    <AuthContext.Provider value={{ user, session, loading }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, memberId, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
