@@ -84,7 +84,6 @@ export default function Analytics() {
       <section className="space-y-6 pt-6 pb-6 md:space-y-8 md:pt-10">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <p className="app-eyebrow">Analytics</p>
             <h1 className="mt-2 text-[2rem] font-semibold tracking-tight text-app-text sm:text-[2.4rem]">
               Dashboard
             </h1>

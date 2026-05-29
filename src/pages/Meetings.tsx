@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMeetings, useUpdateMeeting } from "../hooks/useMeetings";
 import type { Meeting } from "../types/database";
 import MeetingForm from "../components/meetings/MeetingForm";
+import RoleSignupModal from "../components/meetings/RoleSignupModal";
 import { AppShell } from "../components/ui/AppShell";
 import { useProfile } from "../hooks/useProfile";
 
@@ -12,6 +13,12 @@ function formatMeetingDate(date: string) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(date));
+}
+
+function formatMeetingLabel(meeting: Meeting) {
+  return meeting.theme
+    ? `${meeting.theme} — ${formatMeetingDate(meeting.date)}`
+    : formatMeetingDate(meeting.date);
 }
 
 function MeetingStatusBadge({ status }: { status: string }) {
@@ -33,6 +40,7 @@ export default function Meetings() {
   const { data: meetings, isLoading, error } = useMeetings();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [signupMeetingId, setSignupMeetingId] = useState<string | null>(null);
   const updateMeeting = useUpdateMeeting();
   const { isAdmin } = useProfile();
   const upcomingCount =
@@ -64,7 +72,6 @@ export default function Meetings() {
       <section className="space-y-6 pt-8 pb-6 md:space-y-8 md:pt-10">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="app-eyebrow">Schedule</p>
             <h1 className="mt-2 text-4xl font-semibold tracking-tight text-app-text md:text-[3rem]">
               Meetings
             </h1>
@@ -91,6 +98,17 @@ export default function Meetings() {
         {isFormOpen && (
           <MeetingForm meeting={editingMeeting} onClose={handleCloseForm} />
         )}
+
+        {signupMeetingId && (() => {
+          const m = meetings?.find((x) => x.id === signupMeetingId);
+          return m ? (
+            <RoleSignupModal
+              meetingId={signupMeetingId}
+              meetingLabel={formatMeetingLabel(m)}
+              onClose={() => setSignupMeetingId(null)}
+            />
+          ) : null;
+        })()}
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="app-panel rounded-[1.5rem] p-5">
@@ -160,6 +178,14 @@ export default function Meetings() {
                     >
                       Open
                     </Link>
+                    {meeting.status === "upcoming" && (
+                      <button
+                        onClick={() => setSignupMeetingId(meeting.id)}
+                        className="flex-1 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-center text-sm font-medium text-primary"
+                      >
+                        Roles
+                      </button>
+                    )}
                     {isAdmin && (
                       <>
                         <button
@@ -172,7 +198,9 @@ export default function Meetings() {
                           onClick={() => handleStatusToggle(meeting)}
                           className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white"
                         >
-                          {meeting.status === "completed" ? "Reopen" : "Mark Done"}
+                          {meeting.status === "completed"
+                            ? "Reopen"
+                            : "Mark Done"}
                         </button>
                       </>
                     )}
@@ -197,6 +225,9 @@ export default function Meetings() {
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
                         Status
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
+                        Roles
                       </th>
                       {isAdmin && (
                         <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
@@ -232,6 +263,18 @@ export default function Meetings() {
                             </button>
                           ) : (
                             <MeetingStatusBadge status={meeting.status} />
+                          )}
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap">
+                          {meeting.status === "upcoming" ? (
+                            <button
+                              onClick={() => setSignupMeetingId(meeting.id)}
+                              className="text-sm font-medium text-primary hover:text-primary/80"
+                            >
+                              View Roles
+                            </button>
+                          ) : (
+                            <span className="text-sm text-app-text-muted">—</span>
                           )}
                         </td>
                         {isAdmin && (
