@@ -78,12 +78,6 @@ export default function Meetings() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="rounded-[1.35rem] border border-app-border bg-app-panel px-4 py-3 text-sm text-app-text-muted shadow-app-card">
-              <span className="font-semibold text-app-text">
-                {meetings?.length ?? 0}
-              </span>{" "}
-              meetings tracked
-            </div>
             {isAdmin && (
               <button
                 onClick={() => setIsFormOpen(true)}
@@ -99,16 +93,17 @@ export default function Meetings() {
           <MeetingForm meeting={editingMeeting} onClose={handleCloseForm} />
         )}
 
-        {signupMeetingId && (() => {
-          const m = meetings?.find((x) => x.id === signupMeetingId);
-          return m ? (
-            <RoleSignupModal
-              meetingId={signupMeetingId}
-              meetingLabel={formatMeetingLabel(m)}
-              onClose={() => setSignupMeetingId(null)}
-            />
-          ) : null;
-        })()}
+        {signupMeetingId &&
+          (() => {
+            const m = meetings?.find((x) => x.id === signupMeetingId);
+            return m ? (
+              <RoleSignupModal
+                meetingId={signupMeetingId}
+                meetingLabel={formatMeetingLabel(m)}
+                onClose={() => setSignupMeetingId(null)}
+              />
+            ) : null;
+          })()}
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="app-panel rounded-[1.5rem] p-5">
@@ -274,7 +269,9 @@ export default function Meetings() {
                               View Roles
                             </button>
                           ) : (
-                            <span className="text-sm text-app-text-muted">—</span>
+                            <span className="text-sm text-app-text-muted">
+                              —
+                            </span>
                           )}
                         </td>
                         {isAdmin && (

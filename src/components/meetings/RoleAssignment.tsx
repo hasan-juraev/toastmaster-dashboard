@@ -635,7 +635,7 @@ export default function RoleAssignment({
         </div>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4">
         {roles?.map((role) => {
           const draft = drafts[role.id];
           const assignment = meetingRoleMap[role.id];

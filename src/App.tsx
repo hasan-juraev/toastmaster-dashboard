@@ -82,7 +82,9 @@ function AppRoutes() {
         path="/"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <LinkedRoute>
+              <Dashboard />
+            </LinkedRoute>
           </ProtectedRoute>
         }
       />

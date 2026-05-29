@@ -96,8 +96,6 @@ export default function RoleSignupModal({ meetingId, meetingLabel, onClose }: Pr
                         <p className="text-sm text-app-text-muted">
                           Assigned: <span className="font-medium">{mr.members?.name ?? "—"}</span>
                         </p>
-                      ) : !mr.signup_open ? (
-                        <p className="text-sm text-app-text-muted">Closed for signup</p>
                       ) : roleSignups.length === 0 ? (
                         <p className="text-sm text-app-text-muted">Open — no one signed up yet</p>
                       ) : (
@@ -116,10 +114,6 @@ export default function RoleSignupModal({ meetingId, meetingLabel, onClose }: Pr
                     {adminAssigned ? (
                       <span className="inline-block rounded-xl bg-app-panel px-3 py-1.5 text-xs font-semibold text-app-text-muted">
                         Assigned
-                      </span>
-                    ) : !mr.signup_open ? (
-                      <span className="inline-block rounded-xl bg-app-panel px-3 py-1.5 text-xs font-semibold text-app-text-muted">
-                        Closed
                       </span>
                     ) : mySignup ? (
                       <button

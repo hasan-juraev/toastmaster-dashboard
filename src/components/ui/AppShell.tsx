@@ -44,7 +44,6 @@ function SignOutButton() {
   );
 }
 
-
 function ProfileNavItem({ mobile }: { mobile?: boolean }) {
   const { memberId } = useProfile();
   const location = useLocation();
@@ -53,8 +52,16 @@ function ProfileNavItem({ mobile }: { mobile?: boolean }) {
 
   if (mobile) {
     return (
-      <Link to={to} className={clsx("app-bottom-nav__item", isActive && "is-active")}>
-        <span className={clsx("material-symbols-outlined text-[1.35rem]", isActive && "icon-filled")}>
+      <Link
+        to={to}
+        className={clsx("app-bottom-nav__item", isActive && "is-active")}
+      >
+        <span
+          className={clsx(
+            "material-symbols-outlined text-[1.35rem]",
+            isActive && "icon-filled",
+          )}
+        >
           person
         </span>
         <span>Profile</span>
@@ -64,7 +71,12 @@ function ProfileNavItem({ mobile }: { mobile?: boolean }) {
 
   return (
     <Link to={to} className={clsx("app-topbar__item", isActive && "is-active")}>
-      <span className={clsx("material-symbols-outlined text-[1.1rem]", isActive && "icon-filled")}>
+      <span
+        className={clsx(
+          "material-symbols-outlined text-[1.1rem]",
+          isActive && "icon-filled",
+        )}
+      >
         person
       </span>
       <span>Profile</span>
@@ -92,7 +104,12 @@ function MobileNav() {
             to={item.to}
             className={clsx("app-bottom-nav__item", isActive && "is-active")}
           >
-            <span className={clsx("material-symbols-outlined text-[1.35rem]", isActive && "icon-filled")}>
+            <span
+              className={clsx(
+                "material-symbols-outlined text-[1.35rem]",
+                isActive && "icon-filled",
+              )}
+            >
               {item.icon}
             </span>
             <span>{item.label}</span>
@@ -115,7 +132,7 @@ function DesktopNav() {
       <div className="app-screen app-topbar__frame">
         <div className="app-brand">
           <div>
-            <p className="app-brand__name">Progress</p>
+            <p className="app-brand__name">Progress Tracker</p>
           </div>
         </div>
 
@@ -132,7 +149,12 @@ function DesktopNav() {
                 to={item.to}
                 className={clsx("app-topbar__item", isActive && "is-active")}
               >
-                <span className={clsx("material-symbols-outlined text-[1.1rem]", isActive && "icon-filled")}>
+                <span
+                  className={clsx(
+                    "material-symbols-outlined text-[1.1rem]",
+                    isActive && "icon-filled",
+                  )}
+                >
                   {item.icon}
                 </span>
                 <span>{item.label}</span>
