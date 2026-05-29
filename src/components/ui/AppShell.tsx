@@ -3,7 +3,6 @@ import clsx from "clsx";
 import type { ReactNode } from "react";
 import { supabase } from "../../lib/supabase";
 import { useProfile } from "../../hooks/useProfile";
-import { useQuery } from "@tanstack/react-query";
 
 interface AppShellProps {
   children: ReactNode;
@@ -25,25 +24,8 @@ const ADMIN_NAV: NavItem[] = [
 const MEMBER_NAV: NavItem[] = [
   { label: "Home", to: "/", icon: "home" },
   { label: "Sessions", to: "/meetings", icon: "calendar_month" },
-  { label: "Roles", to: "/role-signup", icon: "assignment_ind" },
   { label: "Stats", to: "/analytics", icon: "bar_chart" },
 ];
-
-function useNextMeetingId() {
-  return useQuery<string | null>({
-    queryKey: ["next_meeting_id_nav"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("meetings")
-        .select("id")
-        .eq("status", "upcoming")
-        .order("date", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      return data?.id ?? null;
-    },
-  });
-}
 
 function SignOutButton() {
   const navigate = useNavigate();
@@ -62,41 +44,6 @@ function SignOutButton() {
   );
 }
 
-function RoleSignupNavItem({ mobile }: { mobile?: boolean }) {
-  const { memberId } = useProfile();
-  const { data: nextMeetingId } = useNextMeetingId();
-  const location = useLocation();
-
-  const to =
-    memberId && nextMeetingId ? `/my-role/${nextMeetingId}` : "/role-signup";
-
-  const isActive =
-    location.pathname.startsWith("/my-role") ||
-    location.pathname.startsWith("/role-signup");
-
-  if (mobile) {
-    return (
-      <Link
-        to={to}
-        className={clsx("app-bottom-nav__item", isActive && "is-active")}
-      >
-        <span className={clsx("material-symbols-outlined text-[1.35rem]", isActive && "icon-filled")}>
-          assignment_ind
-        </span>
-        <span>Roles</span>
-      </Link>
-    );
-  }
-
-  return (
-    <Link to={to} className={clsx("app-topbar__item", isActive && "is-active")}>
-      <span className={clsx("material-symbols-outlined text-[1.1rem]", isActive && "icon-filled")}>
-        assignment_ind
-      </span>
-      <span>Roles</span>
-    </Link>
-  );
-}
 
 function ProfileNavItem({ mobile }: { mobile?: boolean }) {
   const { memberId } = useProfile();
@@ -134,10 +81,6 @@ function MobileNav() {
   return (
     <nav className="app-bottom-nav">
       {navItems.map((item) => {
-        if (!isAdmin && item.label === "Roles") {
-          return <RoleSignupNavItem key={item.to} mobile />;
-        }
-
         const isActive =
           item.to === "/"
             ? location.pathname === item.to
@@ -178,10 +121,6 @@ function DesktopNav() {
 
         <nav className="app-topbar__nav" aria-label="Primary">
           {navItems.map((item) => {
-            if (!isAdmin && item.label === "Roles") {
-              return <RoleSignupNavItem key={item.to} />;
-            }
-
             const isActive =
               item.to === "/"
                 ? location.pathname === item.to
