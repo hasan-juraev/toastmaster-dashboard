@@ -4,7 +4,8 @@ import { useAuth } from "../app/AuthContext";
 import { useProfile } from "../hooks/useProfile";
 import { useMembers } from "../hooks/useMembers";
 import { useMeetings } from "../hooks/useMeetings";
-import { useMyMeetingRole } from "../hooks/useRoles";
+import { useMyMeetingRole, useOpenMeetingRoles } from "../hooks/useRoles";
+import { useMeetingRoleSignups } from "../hooks/useRoleSignups";
 import { AppShell } from "../components/ui/AppShell";
 import type { Meeting } from "../types/database";
 
@@ -184,6 +185,207 @@ function StatCard({
   );
 }
 
+// ─── Standard Toastmasters schedule template ──────────────────────────────────
+const SCHEDULE_ITEMS = [
+  { time: "19:20", label: "Greetings" },
+  { time: "19:30", label: "Call Meeting to Order", role: "Toastmaster" },
+  { time: "19:40", label: "Theme & Role Introduction", role: "Toastmaster" },
+  { time: "19:50", label: "Table Topics Session", role: "Table Topics Master" },
+  { time: "20:15", label: "Prepared Speech Session", role: "Toastmaster" },
+  {
+    time: "20:25",
+    label: "Intro & Special Activity",
+    role: "Mini Debate Master",
+  },
+  { time: "20:30", label: "Break" },
+  { time: "20:40", label: "Mini Debate Session", role: "Mini Debate Master" },
+  { time: "20:50", label: "Evaluation Session", role: "General Evaluator" },
+  { time: "21:05", label: "Award Session", role: "Toastmaster" },
+  { time: "21:10", label: "Club Business & Role Sign-up" },
+  { time: "21:15", label: "Adjourn & Group Photo" },
+] as const;
+
+// Roles shown in the compact key-roles panel (agenda PDF left side)
+const KEY_ROLE_NAMES = [
+  "Toastmaster",
+  "General Evaluator",
+  "Grammarian",
+  "Ah-Counter",
+  "Timer",
+  "Table Topics Master",
+] as const;
+
+function MeetingAgendaSection({ meeting }: { meeting: Meeting }) {
+  const { data: meetingRoles = [] } = useOpenMeetingRoles(meeting.id);
+  const { data: signups = [] } = useMeetingRoleSignups(meeting.id);
+
+  // roleId → role name (from meeting_roles rows)
+  const roleIdToName = new Map<string, string>();
+  for (const r of meetingRoles) {
+    if (r.role_id && r.roles?.name) roleIdToName.set(r.role_id, r.roles.name);
+  }
+
+  // role name → member name(s)
+  // Priority: admin assignment > member self-signup
+  const roleMap = new Map<string, string[]>();
+
+  for (const r of meetingRoles) {
+    if (r.roles?.name && r.members?.name) {
+      roleMap.set(r.roles.name, [r.members.name]);
+    }
+  }
+
+  for (const s of signups) {
+    const roleName = roleIdToName.get(s.role_id);
+    if (!roleName || !s.members?.name) continue;
+    if (!roleMap.has(roleName)) {
+      roleMap.set(roleName, [s.members.name]);
+    } else {
+      const existing = roleMap.get(roleName)!;
+      if (!existing.includes(s.members.name)) existing.push(s.members.name);
+    }
+  }
+
+  const formattedDate = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(meeting.date));
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+          Meeting Agenda
+        </p>
+        <span className="text-xs text-app-text-muted">{formattedDate}</span>
+      </div>
+
+      <div className="app-panel rounded-[2rem] p-6 space-y-6">
+        {/* Theme / meta */}
+        {(meeting.theme || meeting.theme_question) && (
+          <div className="space-y-2">
+            {meeting.theme && (
+              <div className="flex items-center gap-2">
+                <div>
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                    Theme
+                  </p>
+                  <p className="text-sm font-semibold text-app-text">
+                    {meeting.theme}
+                  </p>
+                </div>
+              </div>
+            )}
+            {meeting.theme_question && (
+              <div className="flex items-start gap-2">
+                <span className="material-symbols-outlined text-[1rem] text-primary mt-0.5">
+                  help_outline
+                </span>
+                <div>
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                    Theme Question
+                  </p>
+                  <p className="text-sm italic text-app-text-muted">
+                    &ldquo;{meeting.theme_question}&rdquo;
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Key roles grid */}
+        <div>
+          <p className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+            Key Roles
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {KEY_ROLE_NAMES.map((roleName) => {
+              const assignees = roleMap.get(roleName);
+              const label = assignees ? assignees.join(", ") : null;
+              return (
+                <div
+                  key={roleName}
+                  className="rounded-xl bg-app-panel-soft px-3 py-2.5"
+                >
+                  <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-app-text-subtle">
+                    {roleName}
+                  </p>
+                  <p
+                    className={
+                      label
+                        ? "mt-0.5 text-sm font-semibold text-app-text"
+                        : "mt-0.5 text-sm text-app-text-muted"
+                    }
+                  >
+                    {label ?? "Open"}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Schedule timeline */}
+        <div>
+          <p className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+            Schedule
+          </p>
+          <div className="relative space-y-0">
+            {SCHEDULE_ITEMS.map((item, idx) => {
+              const isBreak = item.label === "Break";
+              return (
+                <div key={idx} className="flex items-stretch gap-3">
+                  {/* Timeline spine */}
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
+                        isBreak ? "bg-app-text-subtle" : "bg-primary"
+                      }`}
+                    />
+                    {idx < SCHEDULE_ITEMS.length - 1 && (
+                      <div className="w-px flex-1 bg-app-border" />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="pb-3 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-xs font-mono text-app-text-subtle tabular-nums">
+                        {item.time}
+                      </span>
+                      <span
+                        className={`text-sm font-medium ${
+                          isBreak ? "text-app-text-muted" : "text-app-text"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </div>
+                    {"role" in item && (
+                      <p className="mt-0.5 text-xs text-app-text-muted">
+                        {item.role}
+                        {roleMap.get(item.role)?.length ? (
+                          <span className="ml-1 font-semibold text-primary">
+                            · {roleMap.get(item.role)!.join(", ")}
+                          </span>
+                        ) : null}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const QUICK_ACCESS = [
   { label: "Roles", icon: "assignment_ind", to: "/role-signup" },
   { label: "Sessions", icon: "calendar_month", to: "/meetings" },
@@ -269,6 +471,9 @@ export default function Dashboard() {
             meetingTheme={nextMeeting.theme}
           />
         )}
+
+        {/* Meeting agenda */}
+        {nextMeeting && <MeetingAgendaSection meeting={nextMeeting} />}
 
         {/* Quick access — mobile only */}
         <div className="md:hidden">
