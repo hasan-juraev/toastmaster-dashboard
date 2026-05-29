@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./app/AuthProvider";
 import { useAuth } from "./app/AuthContext";
@@ -36,6 +36,20 @@ function LinkedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) return <AppLoadingScreen />;
   if (!isLinked) return <Navigate to="/link-profile" replace />;
+  return <>{children}</>;
+}
+
+function MemberSelfRoute({ children }: { children: React.ReactNode }) {
+  const { id } = useParams<{ id: string }>();
+  const { isAdmin, memberId } = useProfile();
+
+  if (!isAdmin && memberId !== id) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-app-text-muted">Access denied.</p>
+      </div>
+    );
+  }
   return <>{children}</>;
 }
 
@@ -104,7 +118,9 @@ function AppRoutes() {
         path="/members"
         element={
           <ProtectedRoute>
-            <Members />
+            <AdminRoute>
+              <Members />
+            </AdminRoute>
           </ProtectedRoute>
         }
       />
@@ -112,7 +128,9 @@ function AppRoutes() {
         path="/members/:id"
         element={
           <ProtectedRoute>
-            <MemberDetail />
+            <MemberSelfRoute>
+              <MemberDetail />
+            </MemberSelfRoute>
           </ProtectedRoute>
         }
       />

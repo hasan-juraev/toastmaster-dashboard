@@ -42,6 +42,7 @@ export default function MeetingForm({ meeting, onClose }: MeetingFormProps) {
         date: data.date,
         theme: data.theme || null,
         location: data.location || null,
+        theme_question: null,
         status: data.status,
       };
 

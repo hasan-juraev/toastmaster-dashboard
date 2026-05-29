@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import type { Member } from "../types/database";
 import { AppShell } from "../components/ui/AppShell";
+import { useProfile } from "../hooks/useProfile";
 
 interface MemberDetailData {
   member: Member;
@@ -24,6 +25,7 @@ interface MemberDetailData {
 
 export default function MemberDetail() {
   const { id } = useParams<{ id: string }>();
+  const { isAdmin } = useProfile();
 
   const { data, isLoading, error } = useQuery<MemberDetailData>({
     queryKey: ["member-detail", id],
@@ -221,11 +223,13 @@ export default function MemberDetail() {
   return (
     <AppShell>
       <section className="space-y-6 pt-8 pb-6 md:space-y-8 md:pt-10">
-        <div>
-          <Link to="/members" className="text-sm font-medium text-primary">
-            ← Back to Members
-          </Link>
-        </div>
+        {isAdmin && (
+          <div>
+            <Link to="/members" className="text-sm font-medium text-primary">
+              ← Back to Members
+            </Link>
+          </div>
+        )}
 
         <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
           <div className="app-panel rounded-[2rem] p-6 md:p-7">

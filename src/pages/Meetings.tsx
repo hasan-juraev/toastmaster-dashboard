@@ -198,9 +198,11 @@ export default function Meetings() {
                       <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
                         Status
                       </th>
-                      <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
-                        Actions
-                      </th>
+                      {isAdmin && (
+                        <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
+                          Actions
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-app-border">
@@ -232,16 +234,16 @@ export default function Meetings() {
                             <MeetingStatusBadge status={meeting.status} />
                           )}
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap text-right">
-                          {isAdmin && (
+                        {isAdmin && (
+                          <td className="px-6 py-5 whitespace-nowrap text-right">
                             <button
                               onClick={() => handleEdit(meeting)}
                               className="text-sm font-medium text-primary hover:text-primary/80"
                             >
                               Edit
                             </button>
-                          )}
-                        </td>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
