@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useMembers } from "../hooks/useMembers";
+import { useMembers, useDeleteMember } from "../hooks/useMembers";
 import type { Member } from "../types/database";
 import MemberForm from "../components/members/MemberForm";
 import { AppShell } from "../components/ui/AppShell";
@@ -24,7 +24,9 @@ export default function Members() {
   const { data: members, isLoading, error } = useMembers();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [deletingMember, setDeletingMember] = useState<Member | null>(null);
   const { isAdmin } = useProfile();
+  const deleteMember = useDeleteMember();
   const activeCount = members?.filter((member) => member.active).length ?? 0;
   const inactiveCount = (members?.length ?? 0) - activeCount;
 
@@ -36,6 +38,12 @@ export default function Members() {
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingMember(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingMember) return;
+    await deleteMember.mutateAsync(deletingMember.id);
+    setDeletingMember(null);
   };
 
   return (
@@ -136,12 +144,20 @@ export default function Members() {
                       View
                     </Link>
                     {isAdmin && (
-                      <button
-                        onClick={() => handleEdit(member)}
-                        className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white"
-                      >
-                        Edit
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleEdit(member)}
+                          className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setDeletingMember(member)}
+                          className="flex-1 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600"
+                        >
+                          Delete
+                        </button>
+                      </>
                     )}
                   </div>
                 </article>
@@ -189,12 +205,20 @@ export default function Members() {
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap text-right">
                           {isAdmin && (
-                            <button
-                              onClick={() => handleEdit(member)}
-                              className="text-sm font-medium text-primary hover:text-primary/80"
-                            >
-                              Edit
-                            </button>
+                            <div className="flex items-center justify-end gap-4">
+                              <button
+                                onClick={() => handleEdit(member)}
+                                className="text-sm font-medium text-primary hover:text-primary/80"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => setDeletingMember(member)}
+                                className="text-sm font-medium text-red-500 hover:text-red-700"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -210,6 +234,32 @@ export default function Members() {
           </div>
         )}
       </section>
+
+      {deletingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-[1.75rem] bg-app-panel p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-app-text">Delete member?</h2>
+            <p className="mt-2 text-sm text-app-text-muted">
+              <span className="font-medium text-app-text">{deletingMember.name}</span> will be permanently removed. This cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setDeletingMember(null)}
+                className="flex-1 rounded-xl border border-app-border bg-app-panel-soft px-4 py-3 text-sm font-medium text-app-text"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleteMember.isPending}
+                className="flex-1 rounded-xl bg-red-500 px-4 py-3 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
+              >
+                {deleteMember.isPending ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

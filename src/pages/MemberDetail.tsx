@@ -25,7 +25,7 @@ interface MemberDetailData {
 
 export default function MemberDetail() {
   const { id } = useParams<{ id: string }>();
-  const { isAdmin } = useProfile();
+  const { isAdmin, memberId, profile } = useProfile();
 
   const { data, isLoading, error } = useQuery<MemberDetailData>({
     queryKey: ["member-detail", id],
@@ -236,9 +236,20 @@ export default function MemberDetail() {
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="app-eyebrow">Profile</p>
-                <h1 className="mt-2 text-4xl font-semibold tracking-tight text-app-text md:text-[3rem]">
-                  {member.name}
-                </h1>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <h1 className="text-4xl font-semibold tracking-tight text-app-text md:text-[3rem]">
+                    {member.name}
+                  </h1>
+                  {memberId === id && profile?.club_role && (
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      profile.club_role === "admin"
+                        ? "bg-violet-50 text-violet-600"
+                        : "bg-sky-50 text-sky-600"
+                    }`}>
+                      {profile.club_role}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-3 text-base text-app-text-muted">
                   {member.email || "No email on file"}
                 </p>
