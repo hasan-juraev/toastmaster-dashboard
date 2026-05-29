@@ -1,20 +1,9 @@
-import { useEffect, useState } from "react";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 
 export function OfflineBanner() {
   const online = useOnlineStatus();
-  // Show "back online" briefly when reconnecting
-  const [justReconnected, setJustReconnected] = useState(false);
 
-  useEffect(() => {
-    if (online) {
-      setJustReconnected(true);
-      const t = setTimeout(() => setJustReconnected(false), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [online]);
-
-  if (online && !justReconnected) return null;
+  if (online) return null;
 
   return (
     <div
@@ -35,15 +24,14 @@ export function OfflineBanner() {
         fontWeight: 600,
         whiteSpace: "nowrap",
         boxShadow: "0 4px 16px rgba(15,23,42,0.14)",
-        background: online ? "rgb(34 197 94)" : "rgb(71 85 105)",
+        background: "rgb(71 85 105)",
         color: "white",
-        transition: "background 300ms ease",
       }}
     >
       <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>
-        {online ? "wifi" : "wifi_off"}
+        wifi_off
       </span>
-      {online ? "Back online" : "You're offline — showing cached data"}
+      You're offline — showing cached data
     </div>
   );
 }
