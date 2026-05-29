@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useMembers } from "../hooks/useMembers";
 import { useAuth } from "../app/AuthContext";
 import { supabase } from "../lib/supabase";
@@ -7,7 +6,6 @@ import { supabase } from "../lib/supabase";
 export default function LinkProfile() {
   const { user } = useAuth();
   const { data: members = [], isLoading } = useMembers();
-  const navigate = useNavigate();
 
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [saving, setSaving] = useState(false);

@@ -89,13 +89,14 @@ export default function Analytics() {
               Dashboard
             </h1>
           </div>
-          <button
+          {/* TODO: Add filters */}
+          {/* <button
             type="button"
             className="flex h-11 w-11 items-center justify-center rounded-2xl border border-app-border bg-app-panel text-app-text-muted transition hover:border-primary/30 hover:text-primary"
             title="Filters coming soon"
           >
             <span className="material-symbols-outlined">tune</span>
-          </button>
+          </button> */}
         </header>
 
         {isLoading ? (

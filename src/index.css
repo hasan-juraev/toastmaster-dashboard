@@ -22,6 +22,8 @@
     --shadow-app-card:
       0 18px 40px rgba(15, 23, 42, 0.08),
       0 6px 18px rgba(15, 23, 42, 0.04);
+    --color-hero-bg: 10 18 38;
+    --color-hero-text: 248 250 252;
   }
 
   * {
@@ -96,8 +98,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 1.5rem;
-    padding-top: 1.5rem;
-    padding-bottom: 1rem;
+    padding-top: 2.5rem;
+    padding-bottom: 1.5rem;
   }
 
   .app-brand {
@@ -171,6 +173,30 @@
     box-shadow: var(--shadow-app-card);
   }
 
+  .hero-card {
+    background: rgb(var(--color-hero-bg));
+    color: rgb(var(--color-hero-text));
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.18), transparent 60%);
+    pointer-events: none;
+  }
+
+  .icon-filled {
+    font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+  }
+
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
   .app-bottom-nav {
     position: fixed;
     right: 0;
@@ -178,7 +204,7 @@
     left: 0;
     z-index: 30;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.25rem;
     border-top: 1px solid rgba(var(--color-app-border), 0.9);
     background: rgba(var(--color-app-bg-alt), 0.9);
