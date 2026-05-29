@@ -17,16 +17,16 @@ interface NavItem {
 
 const ADMIN_NAV: NavItem[] = [
   { label: "Home", to: "/", icon: "home" },
-  { label: "Meetings", to: "/meetings", icon: "calendar_month" },
+  { label: "Sessions", to: "/meetings", icon: "calendar_month" },
+  { label: "Members", to: "/members", icon: "groups" },
   { label: "Analytics", to: "/analytics", icon: "bar_chart" },
-  { label: "Members", to: "/members", icon: "group" },
 ];
 
 const MEMBER_NAV: NavItem[] = [
   { label: "Home", to: "/", icon: "home" },
-  { label: "Meetings", to: "/meetings", icon: "calendar_month" },
-  { label: "My Role", to: "/role-signup", icon: "assignment_ind" },
-  { label: "Analytics", to: "/analytics", icon: "bar_chart" },
+  { label: "Sessions", to: "/meetings", icon: "calendar_month" },
+  { label: "Roles", to: "/role-signup", icon: "assignment_ind" },
+  { label: "Stats", to: "/analytics", icon: "bar_chart" },
 ];
 
 function useNextMeetingId() {
@@ -45,26 +45,12 @@ function useNextMeetingId() {
   });
 }
 
-function SignOutButton({ mobile }: { mobile?: boolean }) {
+function SignOutButton() {
   const navigate = useNavigate();
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/login", { replace: true });
   };
-
-  if (mobile) {
-    return (
-      <button
-        onClick={handleSignOut}
-        className="app-bottom-nav__item text-app-text-muted"
-      >
-        <span className="material-symbols-outlined text-[1.35rem]">logout</span>
-        <span>Sign Out</span>
-      </button>
-    );
-  }
-
   return (
     <button
       onClick={handleSignOut}
@@ -94,20 +80,47 @@ function RoleSignupNavItem({ mobile }: { mobile?: boolean }) {
         to={to}
         className={clsx("app-bottom-nav__item", isActive && "is-active")}
       >
-        <span className="material-symbols-outlined text-[1.35rem]">
+        <span className={clsx("material-symbols-outlined text-[1.35rem]", isActive && "icon-filled")}>
           assignment_ind
         </span>
-        <span>My Role</span>
+        <span>Roles</span>
       </Link>
     );
   }
 
   return (
     <Link to={to} className={clsx("app-topbar__item", isActive && "is-active")}>
-      <span className="material-symbols-outlined text-[1.1rem]">
+      <span className={clsx("material-symbols-outlined text-[1.1rem]", isActive && "icon-filled")}>
         assignment_ind
       </span>
-      <span>My Role</span>
+      <span>Roles</span>
+    </Link>
+  );
+}
+
+function ProfileNavItem({ mobile }: { mobile?: boolean }) {
+  const { memberId } = useProfile();
+  const location = useLocation();
+  const to = memberId ? `/members/${memberId}` : "/members";
+  const isActive = location.pathname.startsWith("/members");
+
+  if (mobile) {
+    return (
+      <Link to={to} className={clsx("app-bottom-nav__item", isActive && "is-active")}>
+        <span className={clsx("material-symbols-outlined text-[1.35rem]", isActive && "icon-filled")}>
+          person
+        </span>
+        <span>Profile</span>
+      </Link>
+    );
+  }
+
+  return (
+    <Link to={to} className={clsx("app-topbar__item", isActive && "is-active")}>
+      <span className={clsx("material-symbols-outlined text-[1.1rem]", isActive && "icon-filled")}>
+        person
+      </span>
+      <span>Profile</span>
     </Link>
   );
 }
@@ -121,7 +134,7 @@ function MobileNav() {
   return (
     <nav className="app-bottom-nav">
       {navItems.map((item) => {
-        if (!isAdmin && item.label === "My Role") {
+        if (!isAdmin && item.label === "Roles") {
           return <RoleSignupNavItem key={item.to} mobile />;
         }
 
@@ -136,14 +149,14 @@ function MobileNav() {
             to={item.to}
             className={clsx("app-bottom-nav__item", isActive && "is-active")}
           >
-            <span className="material-symbols-outlined text-[1.35rem]">
+            <span className={clsx("material-symbols-outlined text-[1.35rem]", isActive && "icon-filled")}>
               {item.icon}
             </span>
             <span>{item.label}</span>
           </Link>
         );
       })}
-      <SignOutButton mobile />
+      <ProfileNavItem mobile />
     </nav>
   );
 }
@@ -159,13 +172,13 @@ function DesktopNav() {
       <div className="app-screen app-topbar__frame">
         <div className="app-brand">
           <div>
-            <p className="app-brand__name">Progress Dashboard</p>
+            <p className="app-brand__name">Progress</p>
           </div>
         </div>
 
         <nav className="app-topbar__nav" aria-label="Primary">
           {navItems.map((item) => {
-            if (!isAdmin && item.label === "My Role") {
+            if (!isAdmin && item.label === "Roles") {
               return <RoleSignupNavItem key={item.to} />;
             }
 
@@ -180,15 +193,17 @@ function DesktopNav() {
                 to={item.to}
                 className={clsx("app-topbar__item", isActive && "is-active")}
               >
-                <span className="material-symbols-outlined text-[1.1rem]">
+                <span className={clsx("material-symbols-outlined text-[1.1rem]", isActive && "icon-filled")}>
                   {item.icon}
                 </span>
                 <span>{item.label}</span>
               </Link>
             );
           })}
-          <SignOutButton />
+          <ProfileNavItem />
         </nav>
+
+        <SignOutButton />
       </div>
     </header>
   );
