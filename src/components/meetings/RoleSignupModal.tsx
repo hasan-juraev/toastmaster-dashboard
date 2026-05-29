@@ -74,7 +74,6 @@ export default function RoleSignupModal({ meetingId, meetingLabel, onClose }: Pr
               const roleSignups = signupsByRole.get(mr.role_id) ?? [];
               const mySignup = roleSignups.find((s) => s.member_id === memberId);
               const adminAssigned = !!mr.member_id;
-              const isOpen = mr.signup_open && !adminAssigned;
               const isTakenBySomeoneElse = !isMulti && roleSignups.length > 0 && !mySignup;
 
               return (
