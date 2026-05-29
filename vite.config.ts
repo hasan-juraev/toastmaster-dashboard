@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt', // 'prompt' lets us show a custom update UI via useRegisterSW
       includeAssets: ['icon.svg'],
       manifest: false, // we use our own public/manifest.json
       workbox: {

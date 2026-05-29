@@ -3,6 +3,9 @@ import clsx from "clsx";
 import type { ReactNode } from "react";
 import { supabase } from "../../lib/supabase";
 import { useProfile } from "../../hooks/useProfile";
+import { OfflineBanner } from "./OfflineBanner";
+import { useSWUpdate } from "../../hooks/useSWUpdate";
+import { usePWAInstall } from "../../hooks/usePWAInstall";
 
 interface AppShellProps {
   children: ReactNode;
@@ -170,6 +173,120 @@ function DesktopNav() {
   );
 }
 
+function SWUpdateToast() {
+  const { needRefresh, update } = useSWUpdate();
+  if (!needRefresh) return null;
+  return (
+    <div
+      role="alert"
+      style={{
+        position: "fixed",
+        bottom: "calc(5rem + env(safe-area-inset-bottom))",
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 9998,
+        display: "flex",
+        alignItems: "center",
+        gap: "0.75rem",
+        padding: "0.65rem 1rem",
+        borderRadius: "9999px",
+        fontSize: "0.82rem",
+        fontWeight: 600,
+        whiteSpace: "nowrap",
+        background: "rgb(var(--color-app-panel))",
+        border: "1px solid rgb(var(--color-app-border))",
+        boxShadow: "0 4px 20px rgba(15,23,42,0.16)",
+        color: "rgb(var(--color-app-text))",
+      }}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: "1rem", color: "rgb(var(--color-primary))" }}>
+        system_update
+      </span>
+      New version available
+      <button
+        onClick={update}
+        style={{
+          marginLeft: "0.25rem",
+          padding: "0.3rem 0.75rem",
+          borderRadius: "9999px",
+          background: "rgb(var(--color-primary))",
+          color: "white",
+          border: "none",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+          fontWeight: 700,
+        }}
+      >
+        Update
+      </button>
+    </div>
+  );
+}
+
+function InstallPrompt() {
+  const { canInstall, install, isIOS } = usePWAInstall();
+
+  if (!canInstall && !isIOS) return null;
+
+  // iOS: show "how to install" hint
+  if (isIOS) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          bottom: "calc(5rem + env(safe-area-inset-bottom))",
+          left: "1rem",
+          right: "1rem",
+          zIndex: 9997,
+          display: "flex",
+          alignItems: "center",
+          gap: "0.6rem",
+          padding: "0.75rem 1rem",
+          borderRadius: "1rem",
+          fontSize: "0.82rem",
+          fontWeight: 500,
+          background: "rgb(var(--color-app-panel))",
+          border: "1px solid rgb(var(--color-app-border))",
+          boxShadow: "0 4px 20px rgba(15,23,42,0.16)",
+          color: "rgb(var(--color-app-text))",
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: "1.1rem", color: "rgb(var(--color-primary))", flexShrink: 0 }}>
+          ios_share
+        </span>
+        Tap <strong>Share</strong> then <strong>Add to Home Screen</strong> to install
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={install}
+      style={{
+        position: "fixed",
+        bottom: "calc(5rem + env(safe-area-inset-bottom))",
+        right: "1rem",
+        zIndex: 9997,
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        padding: "0.6rem 1rem",
+        borderRadius: "9999px",
+        fontSize: "0.82rem",
+        fontWeight: 700,
+        background: "rgb(var(--color-primary))",
+        color: "white",
+        border: "none",
+        cursor: "pointer",
+        boxShadow: "0 4px 16px rgba(37,99,235,0.35)",
+      }}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>download</span>
+      Install App
+    </button>
+  );
+}
+
 export function AppShell({ children }: AppShellProps) {
   return (
     <div className="app-shell">
@@ -178,6 +295,9 @@ export function AppShell({ children }: AppShellProps) {
       <DesktopNav />
       <main className="app-screen app-screen--content">{children}</main>
       <MobileNav />
+      <OfflineBanner />
+      <SWUpdateToast />
+      <InstallPrompt />
     </div>
   );
 }
