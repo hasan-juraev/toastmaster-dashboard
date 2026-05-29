@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import clsx from "clsx";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { supabase } from "../../lib/supabase";
 import { useProfile } from "../../hooks/useProfile";
@@ -225,65 +226,76 @@ function SWUpdateToast() {
 
 function InstallPrompt() {
   const { canInstall, install, isIOS } = usePWAInstall();
+  const [dismissed, setDismissed] = useState(false);
 
-  if (!canInstall && !isIOS) return null;
-
-  // iOS: show "how to install" hint
-  if (isIOS) {
-    return (
-      <div
-        style={{
-          position: "fixed",
-          bottom: "calc(5rem + env(safe-area-inset-bottom))",
-          left: "1rem",
-          right: "1rem",
-          zIndex: 9997,
-          display: "flex",
-          alignItems: "center",
-          gap: "0.6rem",
-          padding: "0.75rem 1rem",
-          borderRadius: "1rem",
-          fontSize: "0.82rem",
-          fontWeight: 500,
-          background: "rgb(var(--color-app-panel))",
-          border: "1px solid rgb(var(--color-app-border))",
-          boxShadow: "0 4px 20px rgba(15,23,42,0.16)",
-          color: "rgb(var(--color-app-text))",
-        }}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: "1.1rem", color: "rgb(var(--color-primary))", flexShrink: 0 }}>
-          ios_share
-        </span>
-        Tap <strong>Share</strong> then <strong>Add to Home Screen</strong> to install
-      </div>
-    );
-  }
+  if (dismissed || (!canInstall && !isIOS)) return null;
 
   return (
-    <button
-      onClick={install}
+    <div
       style={{
         position: "fixed",
         bottom: "calc(5rem + env(safe-area-inset-bottom))",
+        left: "1rem",
         right: "1rem",
         zIndex: 9997,
         display: "flex",
         alignItems: "center",
-        gap: "0.5rem",
-        padding: "0.6rem 1rem",
-        borderRadius: "9999px",
-        fontSize: "0.82rem",
-        fontWeight: 700,
-        background: "rgb(var(--color-primary))",
-        color: "white",
-        border: "none",
-        cursor: "pointer",
-        boxShadow: "0 4px 16px rgba(37,99,235,0.35)",
+        gap: "0.6rem",
+        padding: "0.75rem 1rem",
+        borderRadius: "1rem",
+        background: "rgb(var(--color-app-panel))",
+        border: "1px solid rgb(var(--color-app-border))",
+        boxShadow: "0 4px 20px rgba(15,23,42,0.16)",
+        color: "rgb(var(--color-app-text))",
       }}
     >
-      <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>download</span>
-      Install App
-    </button>
+      <span
+        className="material-symbols-outlined"
+        style={{ fontSize: "1.1rem", color: "rgb(var(--color-primary))", flexShrink: 0 }}
+      >
+        {isIOS ? "ios_share" : "download"}
+      </span>
+      <span style={{ fontSize: "0.82rem", fontWeight: 500 }}>
+        {isIOS
+          ? <>Tap <strong>Share</strong> → <strong>Add to Home Screen</strong></>
+          : "Install this app on your device"}
+      </span>
+      {!isIOS && (
+        <button
+          onClick={install}
+          style={{
+            marginLeft: "auto",
+            padding: "0.3rem 0.85rem",
+            borderRadius: "9999px",
+            background: "rgb(var(--color-primary))",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "0.8rem",
+            fontWeight: 700,
+            flexShrink: 0,
+          }}
+        >
+          Install
+        </button>
+      )}
+      <button
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss"
+        style={{
+          marginLeft: isIOS ? "auto" : "0.25rem",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          color: "rgb(var(--color-app-text-subtle))",
+          display: "flex",
+          padding: 0,
+          flexShrink: 0,
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: "1.1rem" }}>close</span>
+      </button>
+    </div>
   );
 }
 
