@@ -2,6 +2,19 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
+// ─── Club config ────────────────────────────────────────────────────────────
+const CLUB_NAME = "GGLTM";
+const APP_NAME = "Progress Tracker";
+const APP_TAGLINE = "Track roles, speeches, and growth — all in one place.";
+
+const FEATURES = [
+  { icon: "calendar_month", label: "Session scheduling & management" },
+  { icon: "groups", label: "Role assignments" },
+  { icon: "bar_chart", label: "Personal progress & analytics" },
+  { icon: "emoji_events", label: "Achievements & level system" },
+];
+// ────────────────────────────────────────────────────────────────────────────
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,136 +44,284 @@ export default function Login() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-app-bg text-app-text">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-60 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.14),transparent_60%)] sm:h-72" />
+      {/* ── Mobile ambient glow ── */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.13),transparent_65%)] md:hidden" />
 
-      <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col justify-start px-4 py-6 sm:px-6 sm:py-8 md:justify-center">
-        <div className="mx-auto w-full max-w-[20rem] sm:max-w-sm">
-          <div className="mb-7 pt-4 text-center sm:mb-10 sm:pt-0">
-            <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.22em] text-primary sm:text-xs sm:tracking-[0.28em]">
-              GGLTM
-            </p>
-            <h1 className="mx-auto max-w-[14rem] text-[1.95rem] font-semibold tracking-tight text-app-text sm:max-w-none sm:text-4xl md:text-[2.8rem]">
-              Progress Tracker
-            </h1>
-            <p className="mx-auto mt-3 max-w-[17rem] text-sm leading-6 text-app-text-muted sm:max-w-none sm:text-base">
-              Manage your club meetings, members, roles, and progress from a
-              cleaner dashboard experience.
-            </p>
+      <div className="flex min-h-[100dvh] flex-col md:flex-row">
+        {/* ══════════════════════════════════════════════════
+            LEFT — Branding panel (desktop only)
+        ══════════════════════════════════════════════════ */}
+        <div
+          className="relative hidden flex-col justify-between overflow-hidden p-10 md:flex md:w-[46%] lg:w-[42%] xl:w-[38%]"
+          style={{ background: "rgb(10 18 38)" }}
+        >
+          {/* Glow blobs */}
+          <div
+            className="pointer-events-none absolute -top-32 -right-24 h-80 w-80 rounded-full opacity-30"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(59,130,246,0.5), transparent 70%)",
+              filter: "blur(60px)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute -bottom-28 -left-20 h-72 w-72 rounded-full opacity-20"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(139,92,246,0.6), transparent 70%)",
+              filter: "blur(80px)",
+            }}
+          />
+
+          {/* Brand mark */}
+          <div className="relative z-10">
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-11 w-11 items-center justify-center rounded-2xl"
+                style={{
+                  background: "rgba(59,130,246,0.2)",
+                  border: "1px solid rgba(59,130,246,0.3)",
+                }}
+              >
+                <span
+                  className="material-symbols-outlined text-xl"
+                  style={{ color: "rgb(147 197 253)" }}
+                >
+                  trending_up
+                </span>
+              </div>
+              <div>
+                <p
+                  className="text-[0.65rem] font-bold uppercase tracking-[0.26em]"
+                  style={{ color: "rgba(147,197,253,0.8)" }}
+                >
+                  {CLUB_NAME}
+                </p>
+                <p
+                  className="text-sm font-semibold"
+                  style={{ color: "rgb(248 250 252)" }}
+                >
+                  {APP_NAME}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="rounded-[1.5rem] border border-app-border bg-app-panel/95 p-4 shadow-app-card backdrop-blur sm:rounded-[1.75rem] sm:p-6">
-            {error ? (
-              <div className="mb-4 rounded-2xl border border-app-danger/25 bg-app-danger/10 px-4 py-3 text-sm text-red-600">
-                <div className="flex items-start gap-3">
+          {/* Hero copy */}
+          <div className="relative z-10 space-y-8">
+            <div>
+              <h2
+                className="text-3xl font-bold leading-tight tracking-tight lg:text-4xl"
+                style={{ color: "rgb(248 250 252)" }}
+              >
+                Level up every
+                <br />
+                <span style={{ color: "rgb(147 197 253)" }}>session.</span>
+              </h2>
+              <p
+                className="mt-4 text-base leading-relaxed"
+                style={{ color: "rgba(148,163,184,0.9)" }}
+              >
+                {APP_TAGLINE}
+              </p>
+            </div>
+
+            {/* Feature list */}
+            <ul className="space-y-3.5">
+              {FEATURES.map((f) => (
+                <li key={f.icon} className="flex items-center gap-3">
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+                    style={{
+                      background: "rgba(59,130,246,0.15)",
+                      border: "1px solid rgba(59,130,246,0.2)",
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined text-base"
+                      style={{ color: "rgb(147 197 253)" }}
+                    >
+                      {f.icon}
+                    </span>
+                  </div>
+                  <span
+                    className="text-sm"
+                    style={{ color: "rgba(203,213,225,0.85)" }}
+                  >
+                    {f.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Footer note */}
+          <p
+            className="relative z-10 text-xs"
+            style={{ color: "rgba(100,116,139,0.7)" }}
+          >
+            Members only · Contact admin to join
+          </p>
+        </div>
+
+        {/* ══════════════════════════════════════════════════
+            RIGHT — Form panel
+        ══════════════════════════════════════════════════ */}
+        <div className="flex flex-1 flex-col items-center justify-center px-5 py-10 sm:px-8 md:px-12 lg:px-16">
+          <div
+            className="w-full max-w-sm"
+            style={{ animation: "loginFadeUp 0.35s ease both" }}
+          >
+            {/* Mobile-only brand header */}
+            <div className="mb-8 text-center md:hidden">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[1.1rem] bg-primary/10">
+                <span className="material-symbols-outlined text-2xl text-primary">
+                  trending_up
+                </span>
+              </div>
+              <p className="app-eyebrow mb-1">{CLUB_NAME}</p>
+              <h1 className="text-[1.9rem] font-semibold tracking-tight text-app-text">
+                {APP_NAME}
+              </h1>
+              <p className="mt-2 text-sm text-app-text-muted">{APP_TAGLINE}</p>
+            </div>
+
+            {/* Desktop heading */}
+            <div className="mb-8 hidden md:block">
+              <h1 className="text-2xl font-bold tracking-tight text-app-text lg:text-3xl">
+                Welcome back
+              </h1>
+              <p className="mt-1.5 text-sm text-app-text-muted">
+                Sign in to your {CLUB_NAME} account
+              </p>
+            </div>
+
+            {/* Error banner */}
+            {error && (
+              <div className="mb-5 rounded-2xl border border-app-danger/25 bg-app-danger/10 px-4 py-3 text-sm text-red-600">
+                <div className="flex items-start gap-2.5">
                   <span className="material-symbols-outlined mt-0.5 text-base text-app-danger">
                     error
                   </span>
                   <span>{error}</span>
                 </div>
               </div>
-            ) : null}
+            )}
 
-            <form className="space-y-4" onSubmit={handleLogin}>
-              <div className="space-y-2">
-                <label
-                  htmlFor="email"
-                  className="block text-xs font-semibold uppercase tracking-[0.16em] text-app-text-muted"
-                >
-                  Email Address
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-app-text-subtle">
-                    <span className="material-symbols-outlined text-lg">
-                      mail_outline
-                    </span>
-                  </span>
-                  <input
-                    id="email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="w-full rounded-2xl border border-app-border bg-app-panel-soft py-3.5 pl-11 pr-4 text-base text-app-text placeholder:text-app-text-subtle sm:pl-12"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            {/* Form card */}
+            <div className="rounded-3xl border border-app-border bg-app-panel/95 p-5 shadow-app-card backdrop-blur sm:p-6">
+              <form className="space-y-4" onSubmit={handleLogin}>
+                {/* Email */}
+                <div className="space-y-1.5">
                   <label
-                    htmlFor="password"
+                    htmlFor="email"
                     className="block text-xs font-semibold uppercase tracking-[0.16em] text-app-text-muted"
                   >
-                    Password
+                    Email
                   </label>
-                  <button
-                    type="button"
-                    className="text-[0.72rem] font-medium text-app-text-muted transition hover:text-primary sm:text-xs"
-                    title="Password reset is not configured yet."
-                  >
-                    Forgot password?
-                  </button>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-app-text-subtle">
+                      <span className="material-symbols-outlined text-lg">
+                        mail_outline
+                      </span>
+                    </span>
+                    <input
+                      id="email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full rounded-2xl border border-app-border bg-app-panel-soft py-3.5 pl-11 pr-4 text-base text-app-text placeholder:text-app-text-subtle transition"
+                    />
+                  </div>
                 </div>
 
-                <div className="relative">
-                  <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-app-text-subtle">
-                    <span className="material-symbols-outlined text-lg">
-                      lock
+                {/* Password */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="password"
+                      className="block text-xs font-semibold uppercase tracking-[0.16em] text-app-text-muted"
+                    >
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      className="text-[0.72rem] font-medium text-app-text-muted transition hover:text-primary"
+                      title="Password reset is not configured yet."
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-app-text-subtle">
+                      <span className="material-symbols-outlined text-lg">
+                        lock
+                      </span>
                     </span>
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full rounded-2xl border border-app-border bg-app-panel-soft py-3.5 pl-11 pr-12 text-base text-app-text placeholder:text-app-text-subtle transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-4 text-app-text-subtle transition hover:text-primary"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        {showPassword ? "visibility" : "visibility_off"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-semibold text-white shadow-[0_14px_32px_rgba(59,130,246,0.28)] transition hover:bg-primary/90 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span>{loading ? "Signing in…" : "Sign in"}</span>
+                  <span className="material-symbols-outlined text-lg">
+                    {loading ? "progress_activity" : "arrow_forward"}
                   </span>
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    required
-                    autoComplete="current-password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="w-full rounded-2xl border border-app-border bg-app-panel-soft py-3.5 pl-11 pr-11 text-base text-app-text placeholder:text-app-text-subtle sm:pl-12 sm:pr-12"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((value) => !value)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-app-text-subtle transition hover:text-primary sm:pr-4"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    <span className="material-symbols-outlined text-lg">
-                      {showPassword ? "visibility" : "visibility_off"}
-                    </span>
-                  </button>
-                </div>
-              </div>
+                </button>
+              </form>
+            </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-base font-semibold text-white shadow-[0_18px_34px_rgba(59,130,246,0.24)] transition hover:bg-primary/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 sm:py-4"
-              >
-                <span>{loading ? "Signing in..." : "Sign in"}</span>
-                <span className="material-symbols-outlined text-lg">
-                  {loading ? "progress_activity" : "arrow_forward"}
-                </span>
-              </button>
-            </form>
-          </div>
-
-          <div className="mt-6 pb-3 text-center sm:mt-8 sm:pb-0">
-            <p className="text-sm text-app-text-muted">
-              New to the club?
+            {/* Footer */}
+            {/* <p className="mt-6 text-center text-sm text-app-text-muted">
+              New to the club?{" "}
               <button
                 type="button"
-                className="mt-1 block w-full font-semibold text-primary transition hover:underline sm:ml-1 sm:inline sm:w-auto"
-                title="Member signup is outside the current app scope."
+                className="font-semibold text-primary transition hover:underline"
+                title="Member signup is managed by club admins."
               >
                 Contact an admin
               </button>
-            </p>
+            </p> */}
           </div>
         </div>
       </div>
+
+      {/* Entrance animation */}
+      <style>{`
+        @keyframes loginFadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
