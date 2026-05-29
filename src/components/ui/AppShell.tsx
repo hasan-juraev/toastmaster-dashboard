@@ -81,11 +81,11 @@ function RoleSignupNavItem({ mobile }: { mobile?: boolean }) {
   const { data: nextMeetingId } = useNextMeetingId();
   const location = useLocation();
 
-  const to = memberId && nextMeetingId
-    ? `/my-role/${nextMeetingId}`
-    : "/role-signup";
+  const to =
+    memberId && nextMeetingId ? `/my-role/${nextMeetingId}` : "/role-signup";
 
-  const isActive = location.pathname.startsWith("/my-role") ||
+  const isActive =
+    location.pathname.startsWith("/my-role") ||
     location.pathname.startsWith("/role-signup");
 
   if (mobile) {
@@ -94,18 +94,19 @@ function RoleSignupNavItem({ mobile }: { mobile?: boolean }) {
         to={to}
         className={clsx("app-bottom-nav__item", isActive && "is-active")}
       >
-        <span className="material-symbols-outlined text-[1.35rem]">assignment_ind</span>
+        <span className="material-symbols-outlined text-[1.35rem]">
+          assignment_ind
+        </span>
         <span>My Role</span>
       </Link>
     );
   }
 
   return (
-    <Link
-      to={to}
-      className={clsx("app-topbar__item", isActive && "is-active")}
-    >
-      <span className="material-symbols-outlined text-[1.1rem]">assignment_ind</span>
+    <Link to={to} className={clsx("app-topbar__item", isActive && "is-active")}>
+      <span className="material-symbols-outlined text-[1.1rem]">
+        assignment_ind
+      </span>
       <span>My Role</span>
     </Link>
   );
@@ -158,7 +159,7 @@ function DesktopNav() {
       <div className="app-screen app-topbar__frame">
         <div className="app-brand">
           <div>
-            <p className="app-brand__name">Club Progress Dashboard</p>
+            <p className="app-brand__name">Progress Dashboard</p>
           </div>
         </div>
 

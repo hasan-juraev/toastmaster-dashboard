@@ -128,7 +128,7 @@ export default function Dashboard() {
               <div>
                 <p className="app-eyebrow">Next Event Theme</p>
                 <h1 className="mt-2 text-[2rem] font-bold tracking-[-0.04em] text-app-text sm:text-[2.35rem] md:text-[3rem]">
-                  {nextMeeting?.theme || "Morning Toastmasters"}
+                  {nextMeeting?.theme || "Morning Session"}
                 </h1>
                 <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-app-text-muted md:text-base">
                   <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary">

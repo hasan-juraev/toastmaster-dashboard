@@ -1,7 +1,7 @@
 {
-  "name": "Toastmasters Dashboard",
-  "short_name": "TM Club",
-  "description": "Manage meetings, roles, speeches, and track club progress",
+  "name": "Progress Tracker",
+  "short_name": "Progress",
+  "description": "Track roles, speeches, and growth — all in one place.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
