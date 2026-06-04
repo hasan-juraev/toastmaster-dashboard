@@ -20,14 +20,14 @@ interface NavItem {
 
 const ADMIN_NAV: NavItem[] = [
   { label: "Home", to: "/", icon: "home" },
-  { label: "Sessions", to: "/meetings", icon: "calendar_month" },
+  { label: "Meetings", to: "/meetings", icon: "calendar_month" },
   { label: "Members", to: "/members", icon: "groups" },
   { label: "Analytics", to: "/analytics", icon: "bar_chart" },
 ];
 
 const MEMBER_NAV: NavItem[] = [
   { label: "Home", to: "/", icon: "home" },
-  { label: "Sessions", to: "/meetings", icon: "calendar_month" },
+  { label: "Meetings", to: "/meetings", icon: "calendar_month" },
   { label: "Stats", to: "/analytics", icon: "bar_chart" },
 ];
 
@@ -135,9 +135,10 @@ function DesktopNav() {
     <header className="app-topbar">
       <div className="app-screen app-topbar__frame">
         <div className="app-brand">
-          <div>
-            <p className="app-brand__name">Progress Tracker</p>
-          </div>
+          <img src="/icon.svg" alt="" className="app-brand__icon-img" aria-hidden="true" />
+          <p className="app-brand__name">
+            Progressy<span style={{ color: "#06d6a0" }}>L</span>
+          </p>
         </div>
 
         <nav className="app-topbar__nav" aria-label="Primary">
@@ -200,7 +201,10 @@ function SWUpdateToast() {
         color: "rgb(var(--color-app-text))",
       }}
     >
-      <span className="material-symbols-outlined" style={{ fontSize: "1rem", color: "rgb(var(--color-primary))" }}>
+      <span
+        className="material-symbols-outlined"
+        style={{ fontSize: "1rem", color: "rgb(var(--color-primary))" }}
+      >
         system_update
       </span>
       New version available
@@ -251,14 +255,22 @@ function InstallPrompt() {
     >
       <span
         className="material-symbols-outlined"
-        style={{ fontSize: "1.1rem", color: "rgb(var(--color-primary))", flexShrink: 0 }}
+        style={{
+          fontSize: "1.1rem",
+          color: "rgb(var(--color-primary))",
+          flexShrink: 0,
+        }}
       >
         {isIOS ? "ios_share" : "download"}
       </span>
       <span style={{ fontSize: "0.82rem", fontWeight: 500 }}>
-        {isIOS
-          ? <>Tap <strong>Share</strong> → <strong>Add to Home Screen</strong></>
-          : "Install this app on your device"}
+        {isIOS ? (
+          <>
+            Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>
+          </>
+        ) : (
+          "Install this app on your device"
+        )}
       </span>
       {!isIOS && (
         <button
@@ -293,7 +305,12 @@ function InstallPrompt() {
           flexShrink: 0,
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: "1.1rem" }}>close</span>
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: "1.1rem" }}
+        >
+          close
+        </span>
       </button>
     </div>
   );

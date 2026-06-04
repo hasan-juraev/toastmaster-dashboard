@@ -7,20 +7,20 @@
 
 ## Implementation Order
 
-| Phase | File(s) | Complexity | Depends On |
-|-------|---------|-----------|------------|
-| 0 | `src/index.css` + `tailwind.config.js` | Medium | — |
-| 1 | `src/components/ui/AppShell.tsx` | Medium | Phase 0 |
-| 11 | `src/lib/roleMeta.ts` (new) | Low | — |
-| 2 | `src/pages/Dashboard.tsx` | High | Phase 0, 1 |
-| 3 | `src/pages/RoleSignup.tsx` | Medium | Phase 0, 11 |
-| 4 | `src/pages/MyRoleDashboard.tsx` | Medium | Phase 0, 11 |
-| 5 | `src/pages/MemberDetail.tsx` | High | Phase 0 |
-| 6 | `src/pages/Meetings.tsx` | Low | Phase 0 |
-| 7 | `src/pages/MeetingDetail.tsx` | High | Phase 0, 11 |
-| 8 | `src/pages/Analytics.tsx` | Medium | Phase 0 |
-| 9 | `src/pages/Members.tsx` | Low | Phase 0 |
-| 10 | `src/pages/Login.tsx` | Low | Phase 0 |
+| Phase | File(s)                                | Complexity | Depends On  |
+| ----- | -------------------------------------- | ---------- | ----------- |
+| 0     | `src/index.css` + `tailwind.config.js` | Medium     | —           |
+| 1     | `src/components/ui/AppShell.tsx`       | Medium     | Phase 0     |
+| 11    | `src/lib/roleMeta.ts` (new)            | Low        | —           |
+| 2     | `src/pages/Dashboard.tsx`              | High       | Phase 0, 1  |
+| 3     | `src/pages/RoleSignup.tsx`             | Medium     | Phase 0, 11 |
+| 4     | `src/pages/MyRoleDashboard.tsx`        | Medium     | Phase 0, 11 |
+| 5     | `src/pages/MemberDetail.tsx`           | High       | Phase 0     |
+| 6     | `src/pages/Meetings.tsx`               | Low        | Phase 0     |
+| 7     | `src/pages/MeetingDetail.tsx`          | High       | Phase 0, 11 |
+| 8     | `src/pages/Analytics.tsx`              | Medium     | Phase 0     |
+| 9     | `src/pages/Members.tsx`                | Low        | Phase 0     |
+| 10    | `src/pages/Login.tsx`                  | Low        | Phase 0     |
 
 ---
 
@@ -29,6 +29,7 @@
 **Files:** `src/index.css`, `tailwind.config.js`
 
 ### Goals
+
 - Add new semantic design tokens needed across all phases
 - Fix primary color inconsistency (config uses `#137fec`, CSS token uses `59 130 246`)
 - Add keyframe animations
@@ -36,29 +37,63 @@
 - Change `.app-bottom-nav` from 4-column to 5-column grid
 
 ### New CSS Tokens (add to `:root`)
+
 ```css
---color-hero-bg: 10 18 38;          /* dark navy for hero card */
---color-hero-text: 248 250 252;     /* near-white for hero card */
---color-xp-gold: 251 191 36;        /* amber-400, XP badge color */
---color-level: 139 92 246;          /* violet-500, level indicator */
---color-role-speaker: 59 130 246;   /* blue */
+--color-hero-bg: 10 18 38; /* dark navy for hero card */
+--color-hero-text: 248 250 252; /* near-white for hero card */
+--color-xp-gold: 251 191 36; /* amber-400, XP badge color */
+--color-level: 139 92 246; /* violet-500, level indicator */
+--color-role-speaker: 59 130 246; /* blue */
 --color-role-evaluator: 16 185 129; /* emerald */
 --color-role-facilitator: 139 92 246; /* violet */
---color-role-timer: 245 158 11;     /* amber */
---color-role-grammar: 236 72 153;   /* pink */
---color-role-ah: 239 68 68;         /* red */
---color-role-vote: 99 102 241;      /* indigo */
+--color-role-timer: 245 158 11; /* amber */
+--color-role-grammar: 236 72 153; /* pink */
+--color-role-ah: 239 68 68; /* red */
+--color-role-vote: 99 102 241; /* indigo */
 ```
 
 ### New Keyframes
+
 ```css
-@keyframes fade-in-up { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-@keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
-@keyframes check-pop { 0%,100% { transform:scale(1); } 50% { transform:scale(1.25); } }
-@keyframes progress-fill { from { width:0; } to { width:var(--progress-to); } }
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+@keyframes check-pop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+}
+@keyframes progress-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: var(--progress-to);
+  }
+}
 ```
 
 ### New Utility Classes (add to `@layer components`)
+
 ```css
 .skeleton { background: linear-gradient(90deg, ...); animation: shimmer 1.6s infinite; }
 .progress-bar-track { ... }
@@ -75,6 +110,7 @@
 ```
 
 ### Bottom Nav Grid Fix
+
 ```css
 /* Change 4-column to 5-column */
 .app-bottom-nav {
@@ -83,6 +119,7 @@
 ```
 
 ### Tailwind Config Fix
+
 - Align `primary` color to `"rgb(var(--color-primary))"` pattern
 - Add `hero`, `xp-gold`, `level` color keys
 
@@ -93,6 +130,7 @@
 **File:** `src/components/ui/AppShell.tsx`
 
 ### Goals
+
 - Unify admin and member nav into one 5-tab structure
 - Move Sign Out to desktop avatar dropdown, not a mobile tab
 - Active tab shows filled icon variant
@@ -100,35 +138,46 @@
 - Add member avatar initials circle (desktop)
 
 ### New Nav Structure (both roles)
+
 ```
 Tab 1: Home       → /           icon: home / home_filled
-Tab 2: Sessions   → /meetings   icon: calendar_month / calendar_month_filled  
+Tab 2: Meetings   → /meetings   icon: calendar_month / calendar_month_filled
 Tab 3: Roles      → /role-signup or /my-role/:id  icon: groups / groups_filled
 Tab 4: Stats      → /analytics  icon: bar_chart / bar_chart_filled
 Tab 5: Profile    → /members/:memberId  icon: person / person_filled
 ```
 
 ### Desktop Changes
+
 - Brand pill stays on the left
 - Nav pills stay in the center
 - Right side: notification bell icon + avatar circle with initials
 - Clicking avatar shows dropdown: member name, email, Sign Out link
 
 ### Mobile Changes
+
 - 5 equal-width tabs, no Sign Out tab
 - Sign Out only accessible via Profile page or desktop avatar menu
 
 ### Filled Icon Logic
+
 ```tsx
 // When route matches, use filled variant
-const icon = isActive ? `${baseIcon}` : baseIcon
+const icon = isActive ? `${baseIcon}` : baseIcon;
 // Material Symbols filled: set font-variation-settings FILL to 1
 // className={isActive ? "icon-filled" : ""}
 ```
 
 ### CSS addition for filled icons
+
 ```css
-.icon-filled { font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+.icon-filled {
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 500,
+    "GRAD" 0,
+    "opsz" 24;
+}
 ```
 
 ---
@@ -138,14 +187,16 @@ const icon = isActive ? `${baseIcon}` : baseIcon
 **File:** `src/pages/Dashboard.tsx`
 
 ### Goals
+
 - Personalized first-name greeting (not email)
 - Dark navy hero card on desktop with live session countdown
 - XP + level display for member
 - Quick-action shortcuts (3–4 tappable cards)
 - "Your role for next session" card (if assigned)
-- Recent activity feed (last 3 sessions)
+- Recent activity feed (last 3 meetings)
 
 ### New Sub-Components (inline, same file)
+
 ```tsx
 // HeroCard — dark navy, desktop-only wrapper
 // CountdownDisplay — live countdown using useEffect + setInterval
@@ -156,12 +207,14 @@ const icon = isActive ? `${baseIcon}` : baseIcon
 ```
 
 ### Data Needs
+
 - `useProfile()` — for first name, XP, level
 - `useMeetings()` — for next upcoming meeting date + id
 - `useMyCurrentRole(nextMeetingId)` — new hook OR inline query using existing hooks
 - `useMeetings()` filtered for recent completed meetings
 
 ### Countdown Hook
+
 ```tsx
 function useCountdown(targetDate: string) {
   // returns { days, hours, minutes, seconds }
@@ -170,6 +223,7 @@ function useCountdown(targetDate: string) {
 ```
 
 ### XP / Level Logic (pure functions, extract to `src/lib/gamification.ts`)
+
 ```ts
 export const LEVELS = [
   { name: "Newcomer", minXp: 0 },
@@ -184,6 +238,7 @@ export function getLevelProgress(xp: number): number { ... } // 0–1
 ```
 
 ### Layout
+
 - Mobile: greeting → XP bar → role teaser → quick actions → activity feed
 - Desktop: greeting row → two columns: (hero card + quick actions) | (role teaser + activity feed)
 
@@ -194,6 +249,7 @@ export function getLevelProgress(xp: number): number { ... } // 0–1
 **File:** `src/pages/RoleSignup.tsx`
 
 ### Goals
+
 - Each role card has a unique icon + accent color from `ROLE_META`
 - Open roles show XP badge ("+ 50 XP")
 - Filled roles show member avatar + name
@@ -202,24 +258,57 @@ export function getLevelProgress(xp: number): number { ... } // 0–1
 - "You're signed up" pill on the member's own role
 
 ### ROLE_META (use from `src/lib/roleMeta.ts` created in Phase 11)
+
 ```ts
 export const ROLE_META: Record<string, RoleMeta> = {
-  toastmaster: { label: "Toastmaster", icon: "mic", color: "role-facilitator", xp: 80 },
-  speaker: { label: "Speaker", icon: "record_voice_over", color: "role-speaker", xp: 60 },
-  evaluator: { label: "Evaluator", icon: "rate_review", color: "role-evaluator", xp: 50 },
+  toastmaster: {
+    label: "Toastmaster",
+    icon: "mic",
+    color: "role-facilitator",
+    xp: 80,
+  },
+  speaker: {
+    label: "Speaker",
+    icon: "record_voice_over",
+    color: "role-speaker",
+    xp: 60,
+  },
+  evaluator: {
+    label: "Evaluator",
+    icon: "rate_review",
+    color: "role-evaluator",
+    xp: 50,
+  },
   timer: { label: "Timer", icon: "timer", color: "role-timer", xp: 30 },
-  grammarian: { label: "Grammarian", icon: "spellcheck", color: "role-grammar", xp: 30 },
-  ah_counter: { label: "Ah Counter", icon: "record_voice_over", color: "role-ah", xp: 30 },
-  vote_counter: { label: "Vote Counter", icon: "how_to_vote", color: "role-vote", xp: 20 },
-}
+  grammarian: {
+    label: "Grammarian",
+    icon: "spellcheck",
+    color: "role-grammar",
+    xp: 30,
+  },
+  ah_counter: {
+    label: "Ah Counter",
+    icon: "record_voice_over",
+    color: "role-ah",
+    xp: 30,
+  },
+  vote_counter: {
+    label: "Vote Counter",
+    icon: "how_to_vote",
+    color: "role-vote",
+    xp: 20,
+  },
+};
 ```
 
 ### Card States
+
 1. **Open** — accent border, role icon, role name, XP badge, "Sign Up" button
 2. **Filled by someone else** — dimmed, avatar circle + name, locked icon
 3. **Filled by me** — green check, "You're signed up" pill, option to withdraw
 
 ### Celebration Banner
+
 ```tsx
 // Appears after successful signup mutation
 // Full-width banner: "You're the [Role]! +50 XP earned"
@@ -234,12 +323,14 @@ export const ROLE_META: Record<string, RoleMeta> = {
 **File:** `src/pages/MyRoleDashboard.tsx`
 
 ### Goals
+
 - Replace all 7 static panel functions with a single interactive checklist component
 - Progress bar fills as items are checked
 - Gold bar + celebration text at 100%
 - Role identity header with icon + color from `ROLE_META`
 
 ### Checklist Data (define as constant in file)
+
 ```ts
 const CHECKLISTS: Record<string, string[]> = {
   toastmaster: [
@@ -289,15 +380,16 @@ const CHECKLISTS: Record<string, string[]> = {
     "Collect and count all ballots",
     "Report results to Toastmaster",
   ],
-}
+};
 ```
 
 ### ChecklistPanel Component
+
 ```tsx
 function ChecklistPanel({ role }: { role: string }) {
-  const items = CHECKLISTS[role] ?? []
-  const [checked, setChecked] = useState<Set<number>>(new Set())
-  const progress = checked.size / items.length
+  const items = CHECKLISTS[role] ?? [];
+  const [checked, setChecked] = useState<Set<number>>(new Set());
+  const progress = checked.size / items.length;
 
   // Toggle: add/remove from Set, trigger check-pop animation on icon
   // Progress bar: CSS var --progress-to set inline, animated on change
@@ -306,6 +398,7 @@ function ChecklistPanel({ role }: { role: string }) {
 ```
 
 ### Layout per Role
+
 - Role header: icon (from ROLE_META) + role name + XP value
 - Progress bar: "X / Y completed" label + animated fill
 - Checklist: each item is a tappable row, tap toggles check
@@ -318,6 +411,7 @@ function ChecklistPanel({ role }: { role: string }) {
 **File:** `src/pages/MemberDetail.tsx`
 
 ### Goals
+
 - Avatar initials circle (large, primary-colored)
 - Level system: `getMemberLevel(xp)` → named level + color badge
 - XP progress bar to next level
@@ -326,41 +420,86 @@ function ChecklistPanel({ role }: { role: string }) {
 - Stats row: speeches, roles, meetings attended
 
 ### Level System (use from `src/lib/gamification.ts`)
+
 ```ts
 // Already defined in Phase 2
 // Display: "Level 3 · Contributor" + bar showing progress to Level 4
 ```
 
 ### Achievement Badges (define inline or in `src/lib/gamification.ts`)
+
 ```ts
 const ACHIEVEMENTS = [
-  { id: "first_speech", label: "First Speech", icon: "mic", condition: (m) => m.speeches >= 1 },
-  { id: "five_roles", label: "5 Roles", icon: "groups", condition: (m) => m.roles >= 5 },
-  { id: "ten_meetings", label: "10 Meetings", icon: "calendar_month", condition: (m) => m.meetings >= 10 },
-  { id: "evaluator", label: "First Eval", icon: "rate_review", condition: (m) => m.evaluations >= 1 },
-  { id: "five_speeches", label: "5 Speeches", icon: "record_voice_over", condition: (m) => m.speeches >= 5 },
-  { id: "facilitator", label: "Facilitator", icon: "manage_accounts", condition: (m) => m.timesAsTM >= 1 },
-  { id: "veteran", label: "Veteran", icon: "military_tech", condition: (m) => m.meetings >= 25 },
-  { id: "legend", label: "Legend", icon: "emoji_events", condition: (m) => m.xp >= 1500 },
-]
+  {
+    id: "first_speech",
+    label: "First Speech",
+    icon: "mic",
+    condition: (m) => m.speeches >= 1,
+  },
+  {
+    id: "five_roles",
+    label: "5 Roles",
+    icon: "groups",
+    condition: (m) => m.roles >= 5,
+  },
+  {
+    id: "ten_meetings",
+    label: "10 Meetings",
+    icon: "calendar_month",
+    condition: (m) => m.meetings >= 10,
+  },
+  {
+    id: "evaluator",
+    label: "First Eval",
+    icon: "rate_review",
+    condition: (m) => m.evaluations >= 1,
+  },
+  {
+    id: "five_speeches",
+    label: "5 Speeches",
+    icon: "record_voice_over",
+    condition: (m) => m.speeches >= 5,
+  },
+  {
+    id: "facilitator",
+    label: "Facilitator",
+    icon: "manage_accounts",
+    condition: (m) => m.timesAsTM >= 1,
+  },
+  {
+    id: "veteran",
+    label: "Veteran",
+    icon: "military_tech",
+    condition: (m) => m.meetings >= 25,
+  },
+  {
+    id: "legend",
+    label: "Legend",
+    icon: "emoji_events",
+    condition: (m) => m.xp >= 1500,
+  },
+];
 ```
 
 ### Badge Grid
+
 - 4 columns on mobile, 8 in a row on desktop
 - Unlocked: amber background, full color icon, label below
 - Locked: grayscale, opacity 0.4, "Locked" label
 
 ### Role Cards
+
 - Each role in history: icon + role name + meeting date
 - Progress bar showing how many times each role type completed vs. a soft "mastery" target (e.g., 5× = mastered)
 
 ---
 
-## Phase 6 — Meetings (Sessions List)
+## Phase 6 — Meetings (Meetings List)
 
 **File:** `src/pages/Meetings.tsx`
 
 ### Goals
+
 - Stat cards with icons (not just numbers)
 - Skeleton loading (3 skeleton cards while loading)
 - Empty state with illustration-like icon
@@ -368,6 +507,7 @@ const ACHIEVEMENTS = [
 - Status badge clickable for admins (already implemented, just needs visual polish)
 
 ### Stat Card Icons
+
 ```
 Total: calendar_month (primary)
 Upcoming: upcoming (amber)
@@ -375,6 +515,7 @@ Completed: task_alt (emerald)
 ```
 
 ### Skeleton Card
+
 ```tsx
 function MeetingCardSkeleton() {
   return (
@@ -383,15 +524,18 @@ function MeetingCardSkeleton() {
       <div className="skeleton mt-3 h-6 w-48 rounded-full" />
       <div className="skeleton mt-2 h-3 w-32 rounded-full" />
     </div>
-  )
+  );
 }
 ```
 
 ### Empty State
+
 ```tsx
 <div className="...text-center py-16">
-  <span className="material-symbols-outlined text-5xl text-app-text-subtle">calendar_month</span>
-  <p className="mt-4 text-app-text-muted">No sessions yet.</p>
+  <span className="material-symbols-outlined text-5xl text-app-text-subtle">
+    calendar_month
+  </span>
+  <p className="mt-4 text-app-text-muted">No meetings yet.</p>
   {isAdmin && <button>Create First Session</button>}
 </div>
 ```
@@ -401,21 +545,25 @@ function MeetingCardSkeleton() {
 ## Phase 7 — Meeting Detail (Session Detail)
 
 **File:** `src/pages/MeetingDetail.tsx`
+
 > ⚠️ Do NOT touch `src/components/meetings/RoleAssignment.tsx` — it is 1274 lines of complex admin logic.
 
 ### Goals
-- Enhanced session header: theme, date, location, status badge, + countdown for upcoming sessions
+
+- Enhanced session header: theme, date, location, status badge, + countdown for upcoming meetings
 - Role cards in `MemberRolesView` use `ROLE_META` icons + colors (matching Phase 3 visual language)
 - Speeches section: each speech card shows speaker avatar + title + time
 - Stats mini-cards get icons
 
 ### Header Enhancement
+
 ```tsx
-// For upcoming sessions: show CountdownDisplay component (from Phase 2)
-// For completed sessions: show "Session Complete" check badge
+// For upcoming meetings: show CountdownDisplay component (from Phase 2)
+// For completed meetings: show "Meeting Complete" check badge
 ```
 
 ### MemberRolesView Enhancement
+
 ```tsx
 // Replace plain text list with role cards using ROLE_META
 // Same card design as RoleSignup (Phase 3) but read-only
@@ -423,6 +571,7 @@ function MeetingCardSkeleton() {
 ```
 
 ### What NOT to change
+
 - `<RoleAssignment>` component (admin view) — entirely off-limits
 - Voting section logic
 - Speech comments logic
@@ -435,6 +584,7 @@ function MeetingCardSkeleton() {
 **File:** `src/pages/Analytics.tsx`
 
 ### Goals
+
 - Stat cards get trend indicators (+N% vs last period)
 - Role distribution PieChart gets `ROLE_META` colors
 - AreaChart gets gradient fills matching primary color token
@@ -442,6 +592,7 @@ function MeetingCardSkeleton() {
 - Consistent card spacing with other pages
 
 ### Trend Indicator
+
 ```tsx
 function TrendBadge({ value }: { value: number }) {
   return (
@@ -451,16 +602,20 @@ function TrendBadge({ value }: { value: number }) {
       </span>
       {Math.abs(value)}%
     </span>
-  )
+  );
 }
 ```
 
 ### PieChart Colors
+
 ```ts
 // Map role names to ROLE_META colors for consistent identity across the app
 const CHART_COLORS = Object.fromEntries(
-  Object.entries(ROLE_META).map(([k, v]) => [k, `rgb(var(--color-${v.color}))`])
-)
+  Object.entries(ROLE_META).map(([k, v]) => [
+    k,
+    `rgb(var(--color-${v.color}))`,
+  ]),
+);
 ```
 
 ---
@@ -470,12 +625,14 @@ const CHART_COLORS = Object.fromEntries(
 **File:** `src/pages/Members.tsx`
 
 ### Goals
+
 - Member cards show avatar initials circle
 - Level badge on each card
 - Skeleton loading states
 - Empty state
 
 ### Member Card
+
 ```tsx
 // Avatar: colored circle with initials (first letter of first + last name)
 // Level badge: from getMemberLevel(xp) — small pill under name
@@ -489,7 +646,8 @@ const CHART_COLORS = Object.fromEntries(
 **File:** `src/pages/Login.tsx`
 
 ### Goals (minor polish only — page is already well-designed)
-- Update subtitle copy to be generic ("Progress Tracker" not just Toastmasters)
+
+- Update subtitle copy to be generic ("ProgressyL" not just Toastmasters)
 - Ensure club name is configurable via a constant at the top of the file
 - No structural changes needed
 
@@ -500,6 +658,7 @@ const CHART_COLORS = Object.fromEntries(
 **Files:** `src/lib/roleMeta.ts` (new), `src/lib/gamification.ts` (new)
 
 ### `src/lib/roleMeta.ts`
+
 ```ts
 export interface RoleMeta {
   label: string
@@ -513,6 +672,7 @@ export const ROLE_META: Record<string, RoleMeta> = { ... }
 ```
 
 ### `src/lib/gamification.ts`
+
 ```ts
 export interface Level {
   name: string
@@ -600,4 +760,4 @@ These files should not be modified during this redesign:
 
 ---
 
-*Generated: 2026-05-28 | Project: toastmasters-dashboard | Branch: feat/add-public-key-signin-logic*
+_Generated: 2026-05-28 | Project: toastmasters-dashboard | Branch: feat/add-public-key-signin-logic_

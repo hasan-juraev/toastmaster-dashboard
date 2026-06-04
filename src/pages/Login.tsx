@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 
 // ─── Club config ────────────────────────────────────────────────────────────
 const CLUB_NAME = "GGLTM";
-const APP_NAME = "Progress Tracker";
+const APP_NAME = "ProgressyL";
 const APP_TAGLINE = "Track roles, speeches, and growth — all in one place.";
 
 const FEATURES = [

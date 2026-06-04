@@ -75,7 +75,7 @@ function NextSessionCard({ meeting }: { meeting: Meeting | undefined }) {
           calendar_month
         </span>
         <p className="text-sm text-app-text-muted">
-          No upcoming sessions scheduled
+          No upcoming meetings scheduled
         </p>
       </div>
     );
@@ -280,18 +280,13 @@ function MeetingAgendaSection({ meeting }: { meeting: Meeting }) {
               </div>
             )}
             {meeting.theme_question && (
-              <div className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-[1rem] text-primary mt-0.5">
-                  help_outline
-                </span>
-                <div>
-                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
-                    Theme Question
-                  </p>
-                  <p className="text-sm italic text-app-text-muted">
-                    &ldquo;{meeting.theme_question}&rdquo;
-                  </p>
-                </div>
+              <div>
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                  Theme Question
+                </p>
+                <p className="mt-1 text-xl font-semibold italic leading-relaxed text-app-text">
+                  &ldquo;{meeting.theme_question}&rdquo;
+                </p>
               </div>
             )}
           </div>
@@ -388,7 +383,7 @@ function MeetingAgendaSection({ meeting }: { meeting: Meeting }) {
 
 const QUICK_ACCESS = [
   { label: "Roles", icon: "assignment_ind", to: "/role-signup" },
-  { label: "Sessions", icon: "calendar_month", to: "/meetings" },
+  { label: "Meetings", icon: "calendar_month", to: "/meetings" },
   { label: "Members", icon: "groups", to: "/members" },
   { label: "Analytics", icon: "bar_chart", to: "/analytics" },
 ];
@@ -511,27 +506,18 @@ export default function Dashboard() {
             />
             <StatCard
               icon="event_available"
-              label="Sessions Done"
+              label="Meetings Done"
               value={completedCount}
             />
             <StatCard icon="upcoming" label="Upcoming" value={upcomingCount} />
             <StatCard
               icon="assignment_ind"
-              label="Total Sessions"
+              label="Total Meetings"
               value={meetings?.length ?? 0}
             />
           </div>
         </div>
 
-        {/* Session theme question — desktop */}
-        {nextMeeting?.theme_question && (
-          <div className="app-panel hidden rounded-[2rem] p-6 md:block">
-            <p className="app-eyebrow">This Session&apos;s Theme</p>
-            <p className="mt-3 text-xl font-semibold italic leading-relaxed text-app-text">
-              &ldquo;{nextMeeting.theme_question}&rdquo;
-            </p>
-          </div>
-        )}
       </section>
     </AppShell>
   );
