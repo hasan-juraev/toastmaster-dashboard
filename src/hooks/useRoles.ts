@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import type { Role, MeetingRole } from "../types/database";
@@ -165,9 +166,11 @@ export function useMyMeetingRole(meetingId: string, memberId: string | null) {
   });
 }
 
-// Open role slots for signup page (live polling every 10 seconds)
+// Open role slots for signup page — kept live via Supabase Realtime (no polling)
 export function useOpenMeetingRoles(meetingId: string) {
-  return useQuery({
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: ["open_meeting_roles", meetingId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -178,6 +181,29 @@ export function useOpenMeetingRoles(meetingId: string) {
       return data as MeetingRoleWithDetails[];
     },
     enabled: !!meetingId,
-    refetchInterval: 10_000,
   });
+
+  useEffect(() => {
+    if (!meetingId) return;
+
+    const channel = supabase
+      .channel(`open_meeting_roles_${meetingId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "meeting_roles",
+          filter: `meeting_id=eq.${meetingId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["open_meeting_roles", meetingId] });
+        },
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [meetingId, queryClient]);
+
+  return query;
 }

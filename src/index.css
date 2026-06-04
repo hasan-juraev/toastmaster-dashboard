@@ -108,6 +108,12 @@
     gap: 0.85rem;
   }
 
+  .app-brand__icon-img {
+    height: 2rem;
+    width: 2rem;
+    flex-shrink: 0;
+  }
+
   .app-brand__icon {
     display: flex;
     height: 2.75rem;

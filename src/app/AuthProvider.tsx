@@ -23,6 +23,29 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   }
 }
 
+async function autoLinkByEmail(userId: string, email: string): Promise<Profile | null> {
+  try {
+    const { data: member } = await supabase
+      .from("members")
+      .select("id")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (!member) return null;
+
+    const { data: updated } = await supabase
+      .from("profiles")
+      .update({ member_id: member.id })
+      .eq("id", userId)
+      .select("*")
+      .maybeSingle();
+
+    return (updated as Profile | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -35,7 +58,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          const p = await fetchProfile(session.user.id);
+          let p = await fetchProfile(session.user.id);
+          if (p && p.member_id === null && session.user.email) {
+            p = (await autoLinkByEmail(session.user.id, session.user.email)) ?? p;
+          }
           setProfile(p);
         }
       })
@@ -52,7 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        const p = await fetchProfile(session.user.id);
+        let p = await fetchProfile(session.user.id);
+        if (p && p.member_id === null && session.user.email) {
+          p = (await autoLinkByEmail(session.user.id, session.user.email)) ?? p;
+        }
         setProfile(p);
       } else {
         setProfile(null);

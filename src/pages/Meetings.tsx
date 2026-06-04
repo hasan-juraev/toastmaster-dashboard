@@ -36,17 +36,25 @@ function MeetingStatusBadge({ status }: { status: string }) {
   );
 }
 
+type StatusFilter = "all" | "upcoming" | "completed";
+
 export default function Meetings() {
   const { data: meetings, isLoading, error } = useMeetings();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [signupMeetingId, setSignupMeetingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const updateMeeting = useUpdateMeeting();
   const { isAdmin } = useProfile();
   const upcomingCount =
     meetings?.filter((meeting) => meeting.status === "upcoming").length ?? 0;
   const completedCount =
     meetings?.filter((meeting) => meeting.status === "completed").length ?? 0;
+
+  const filteredMeetings =
+    statusFilter === "all"
+      ? meetings
+      : meetings?.filter((m) => m.status === statusFilter);
 
   const handleEdit = (meeting: Meeting) => {
     setEditingMeeting(meeting);
@@ -132,6 +140,27 @@ export default function Meetings() {
           </div>
         </div>
 
+        {/* Status filter tabs */}
+        {!isLoading && !error && (
+          <div className="flex gap-2">
+            {(["all", "upcoming", "completed"] as StatusFilter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                className={`rounded-xl px-4 py-2 text-sm font-medium capitalize transition ${
+                  statusFilter === f
+                    ? "bg-primary text-white shadow-[0_8px_16px_rgba(59,130,246,0.2)]"
+                    : "border border-app-border bg-app-panel text-app-text-muted hover:text-app-text"
+                }`}
+              >
+                {f === "all" ? `All (${meetings?.length ?? 0})` : null}
+                {f === "upcoming" ? `Upcoming (${upcomingCount})` : null}
+                {f === "completed" ? `Completed (${completedCount})` : null}
+              </button>
+            ))}
+          </div>
+        )}
+
         {isLoading ? (
           <div className="app-panel rounded-[1.5rem] px-5 py-10 text-center text-app-text-muted">
             Loading meetings...
@@ -140,10 +169,10 @@ export default function Meetings() {
           <div className="rounded-[1.5rem] border border-app-danger/25 bg-app-danger/10 px-4 py-3 text-sm text-red-600">
             Error loading meetings: {error.message}
           </div>
-        ) : meetings?.length ? (
+        ) : filteredMeetings?.length ? (
           <>
             <div className="space-y-4 md:hidden">
-              {meetings.map((meeting) => (
+              {filteredMeetings!.map((meeting) => (
                 <article
                   key={meeting.id}
                   className="app-panel rounded-[1.5rem] p-5"
@@ -232,7 +261,7 @@ export default function Meetings() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-app-border">
-                    {meetings.map((meeting) => (
+                    {filteredMeetings!.map((meeting) => (
                       <tr
                         key={meeting.id}
                         className="transition hover:bg-app-panel-soft/40"
@@ -293,7 +322,9 @@ export default function Meetings() {
           </>
         ) : (
           <div className="app-panel rounded-[1.5rem] px-5 py-12 text-center text-app-text-muted">
-            No meetings found. Create your first meeting to get started.
+            {statusFilter === "all"
+              ? "No meetings found. Create your first meeting to get started."
+              : `No ${statusFilter} meetings.`}
           </div>
         )}
       </section>

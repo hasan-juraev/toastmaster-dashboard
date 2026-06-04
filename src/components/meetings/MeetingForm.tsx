@@ -7,6 +7,7 @@ import type { Meeting } from "../../types/database";
 const meetingSchema = z.object({
   date: z.string().min(1, "Date is required"),
   theme: z.string().optional().or(z.literal("")),
+  theme_question: z.string().optional().or(z.literal("")),
   location: z.string().optional().or(z.literal("")),
   status: z.enum(["upcoming", "in_progress", "completed", "cancelled"]).optional(),
 });
@@ -31,6 +32,7 @@ export default function MeetingForm({ meeting, onClose }: MeetingFormProps) {
     defaultValues: {
       date: meeting?.date || "",
       theme: meeting?.theme || "",
+      theme_question: meeting?.theme_question || "",
       location: meeting?.location || "",
       status: meeting?.status || "upcoming",
     },
@@ -41,8 +43,8 @@ export default function MeetingForm({ meeting, onClose }: MeetingFormProps) {
       const payload = {
         date: data.date,
         theme: data.theme || null,
+        theme_question: data.theme_question || null,
         location: data.location || null,
-        theme_question: null,
         status: data.status,
       };
 
@@ -95,6 +97,22 @@ export default function MeetingForm({ meeting, onClose }: MeetingFormProps) {
               id="theme"
               type="text"
               {...register("theme")}
+              className="mt-1 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-app-text placeholder:text-app-text-subtle"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="theme_question"
+              className="block text-sm font-medium text-app-text-muted"
+            >
+              Theme Question
+            </label>
+            <input
+              id="theme_question"
+              type="text"
+              placeholder="e.g. What does perseverance mean to you?"
+              {...register("theme_question")}
               className="mt-1 block w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-3 text-app-text placeholder:text-app-text-subtle"
             />
           </div>
