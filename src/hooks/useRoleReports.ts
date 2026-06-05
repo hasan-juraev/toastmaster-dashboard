@@ -7,51 +7,85 @@ import type {
   TimerReport,
 } from "../types/database";
 
-interface MeetingRoleReports {
-  ahCounterReports: AhCounterReport[];
-  grammarianReports: GrammarianReport[];
-  evaluatorReports: EvaluatorReport[];
-  timerReports: TimerReport[];
+type ReportType = "ah_counter" | "grammarian" | "evaluator" | "timer";
+
+function invalidateReportQuery(
+  queryClient: ReturnType<typeof useQueryClient>,
+  type: ReportType,
+  meetingId: string,
+) {
+  queryClient.invalidateQueries({ queryKey: ["role_reports", type, meetingId] });
+  queryClient.invalidateQueries({ queryKey: ["analytics"] });
 }
 
-export function useMeetingRoleReports(meetingId: string) {
-  return useQuery<MeetingRoleReports>({
-    queryKey: ["role_reports", meetingId],
+export function useAhCounterReports(meetingId: string) {
+  return useQuery<AhCounterReport[]>({
+    queryKey: ["role_reports", "ah_counter", meetingId],
     queryFn: async () => {
-      const [
-        { data: ahCounterReports, error: ahCounterError },
-        { data: grammarianReports, error: grammarianError },
-        { data: evaluatorReports, error: evaluatorError },
-        { data: timerReports, error: timerError },
-      ] = await Promise.all([
-        supabase.from("ah_counter_reports").select("*").eq("meeting_id", meetingId),
-        supabase.from("grammarian_reports").select("*").eq("meeting_id", meetingId),
-        supabase.from("evaluator_reports").select("*").eq("meeting_id", meetingId),
-        supabase.from("timer_reports").select("*").eq("meeting_id", meetingId),
-      ]);
-
-      if (ahCounterError) throw ahCounterError;
-      if (grammarianError) throw grammarianError;
-      if (evaluatorError) throw evaluatorError;
-      if (timerError) throw timerError;
-
-      return {
-        ahCounterReports: (ahCounterReports ?? []) as AhCounterReport[],
-        grammarianReports: (grammarianReports ?? []) as GrammarianReport[],
-        evaluatorReports: (evaluatorReports ?? []) as EvaluatorReport[],
-        timerReports: (timerReports ?? []) as TimerReport[],
-      };
+      const { data, error } = await supabase
+        .from("ah_counter_reports").select("*").eq("meeting_id", meetingId);
+      if (error) throw error;
+      return (data ?? []) as AhCounterReport[];
     },
     enabled: !!meetingId,
   });
 }
 
-function invalidateRoleReportQueries(
-  queryClient: ReturnType<typeof useQueryClient>,
-  meetingId: string,
-) {
-  queryClient.invalidateQueries({ queryKey: ["role_reports", meetingId] });
-  queryClient.invalidateQueries({ queryKey: ["analytics"] });
+export function useGrammarianReports(meetingId: string) {
+  return useQuery<GrammarianReport[]>({
+    queryKey: ["role_reports", "grammarian", meetingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("grammarian_reports").select("*").eq("meeting_id", meetingId);
+      if (error) throw error;
+      return (data ?? []) as GrammarianReport[];
+    },
+    enabled: !!meetingId,
+  });
+}
+
+export function useEvaluatorReports(meetingId: string) {
+  return useQuery<EvaluatorReport[]>({
+    queryKey: ["role_reports", "evaluator", meetingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("evaluator_reports").select("*").eq("meeting_id", meetingId);
+      if (error) throw error;
+      return (data ?? []) as EvaluatorReport[];
+    },
+    enabled: !!meetingId,
+  });
+}
+
+export function useTimerReports(meetingId: string) {
+  return useQuery<TimerReport[]>({
+    queryKey: ["role_reports", "timer", meetingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("timer_reports").select("*").eq("meeting_id", meetingId);
+      if (error) throw error;
+      return (data ?? []) as TimerReport[];
+    },
+    enabled: !!meetingId,
+  });
+}
+
+export function useMeetingRoleReports(meetingId: string) {
+  const ahCounter  = useAhCounterReports(meetingId);
+  const grammarian = useGrammarianReports(meetingId);
+  const evaluator  = useEvaluatorReports(meetingId);
+  const timer      = useTimerReports(meetingId);
+
+  return {
+    data: {
+      ahCounterReports:  ahCounter.data  ?? [],
+      grammarianReports: grammarian.data ?? [],
+      evaluatorReports:  evaluator.data  ?? [],
+      timerReports:      timer.data      ?? [],
+    },
+    isLoading: ahCounter.isLoading || grammarian.isLoading || evaluator.isLoading || timer.isLoading,
+    error: ahCounter.error ?? grammarian.error ?? evaluator.error ?? timer.error,
+  };
 }
 
 export function useUpsertGrammarianReport() {
@@ -61,30 +95,29 @@ export function useUpsertGrammarianReport() {
     mutationFn: async (
       report: Omit<GrammarianReport, "id" | "created_at"> & { id?: string },
     ) => {
-      const query = report.id
-        ? supabase
-            .from("grammarian_reports")
-            .update({
-              meeting_role_id: report.meeting_role_id,
-              meeting_id: report.meeting_id,
-              member_id: report.member_id,
-              grammar_errors: report.grammar_errors,
-              notable_phrases: report.notable_phrases,
-              score: report.score,
-              notes: report.notes,
-            })
-            .eq("id", report.id)
-        : supabase.from("grammarian_reports").insert(report);
-
-      const { data, error } = await query.select().single();
+      const { data, error } = await supabase
+        .from("grammarian_reports")
+        .upsert(
+          {
+            ...(report.id ? { id: report.id } : {}),
+            meeting_role_id: report.meeting_role_id,
+            meeting_id:      report.meeting_id,
+            member_id:       report.member_id,
+            grammar_errors:  report.grammar_errors,
+            notable_phrases: report.notable_phrases,
+            score:           report.score,
+            notes:           report.notes,
+          },
+          { onConflict: "meeting_role_id" },
+        )
+        .select()
+        .single();
 
       if (error) throw error;
       return data as GrammarianReport;
     },
     onSuccess: (_data, variables) => {
-      if (variables.meeting_id) {
-        invalidateRoleReportQueries(queryClient, variables.meeting_id);
-      }
+      if (variables.meeting_id) invalidateReportQuery(queryClient, "grammarian", variables.meeting_id);
     },
   });
 }
@@ -100,11 +133,11 @@ export function useUpsertAhCounterReport() {
         .from("ah_counter_reports")
         .upsert(
           {
-            meeting_id: report.meeting_id,
-            speaker_id: report.speaker_id,
+            meeting_id:      report.meeting_id,
+            speaker_id:      report.speaker_id,
             meeting_role_id: report.meeting_role_id,
-            ah_count: report.ah_count,
-            notes: report.notes,
+            ah_count:        report.ah_count,
+            notes:           report.notes,
           },
           { onConflict: "meeting_id,speaker_id" },
         )
@@ -115,9 +148,7 @@ export function useUpsertAhCounterReport() {
       return data as AhCounterReport;
     },
     onSuccess: (_data, variables) => {
-      if (variables.meeting_id) {
-        invalidateRoleReportQueries(queryClient, variables.meeting_id);
-      }
+      if (variables.meeting_id) invalidateReportQuery(queryClient, "ah_counter", variables.meeting_id);
     },
   });
 }
@@ -129,30 +160,29 @@ export function useUpsertEvaluatorReport() {
     mutationFn: async (
       report: Omit<EvaluatorReport, "id" | "created_at"> & { id?: string },
     ) => {
-      const query = report.id
-        ? supabase
-            .from("evaluator_reports")
-            .update({
-              meeting_role_id: report.meeting_role_id,
-              meeting_id: report.meeting_id,
-              member_id: report.member_id,
-              speech_id: report.speech_id,
-              quality_score: report.quality_score,
-              strengths: report.strengths,
-              improvement_notes: report.improvement_notes,
-            })
-            .eq("id", report.id)
-        : supabase.from("evaluator_reports").insert(report);
-
-      const { data, error } = await query.select().single();
+      const { data, error } = await supabase
+        .from("evaluator_reports")
+        .upsert(
+          {
+            ...(report.id ? { id: report.id } : {}),
+            meeting_role_id:   report.meeting_role_id,
+            meeting_id:        report.meeting_id,
+            member_id:         report.member_id,
+            speech_id:         report.speech_id,
+            quality_score:     report.quality_score,
+            strengths:         report.strengths,
+            improvement_notes: report.improvement_notes,
+          },
+          { onConflict: "meeting_role_id" },
+        )
+        .select()
+        .single();
 
       if (error) throw error;
       return data as EvaluatorReport;
     },
     onSuccess: (_data, variables) => {
-      if (variables.meeting_id) {
-        invalidateRoleReportQueries(queryClient, variables.meeting_id);
-      }
+      if (variables.meeting_id) invalidateReportQuery(queryClient, "evaluator", variables.meeting_id);
     },
   });
 }
@@ -169,12 +199,12 @@ export function useUpsertTimerReport() {
         .upsert(
           {
             meeting_role_id: report.meeting_role_id,
-            meeting_id: report.meeting_id,
-            member_id: report.member_id,
-            speech_id: report.speech_id,
-            target_seconds: report.target_seconds,
-            actual_seconds: report.actual_seconds,
-            notes: report.notes,
+            meeting_id:      report.meeting_id,
+            member_id:       report.member_id,
+            speech_id:       report.speech_id,
+            target_seconds:  report.target_seconds,
+            actual_seconds:  report.actual_seconds,
+            notes:           report.notes,
           },
           { onConflict: "meeting_id,speech_id" },
         )
@@ -185,9 +215,7 @@ export function useUpsertTimerReport() {
       return data as TimerReport;
     },
     onSuccess: (_data, variables) => {
-      if (variables.meeting_id) {
-        invalidateRoleReportQueries(queryClient, variables.meeting_id);
-      }
+      if (variables.meeting_id) invalidateReportQuery(queryClient, "timer", variables.meeting_id);
     },
   });
 }

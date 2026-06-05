@@ -33,8 +33,12 @@ export function useCreateMeeting() {
       if (error) throw error;
       return data as Meeting;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["meetings"] });
+    onSuccess: (newMeeting) => {
+      queryClient.setQueryData<Meeting[]>(["meetings"], (old = []) =>
+        [newMeeting, ...old].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        ),
+      );
     },
   });
 }
@@ -57,8 +61,10 @@ export function useUpdateMeeting() {
       if (error) throw error;
       return data as Meeting;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["meetings"] });
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Meeting[]>(["meetings"], (old = []) =>
+        old.map((m) => (m.id === updated.id ? updated : m)),
+      );
     },
   });
 }

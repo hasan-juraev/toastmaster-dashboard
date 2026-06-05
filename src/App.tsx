@@ -10,7 +10,6 @@ import MemberDetail from "./pages/MemberDetail";
 import Meetings from "./pages/Meetings";
 import MeetingDetail from "./pages/MeetingDetail";
 import Analytics from "./pages/Analytics";
-import LinkProfile from "./pages/LinkProfile";
 import RoleSignup from "./pages/RoleSignup";
 import MyRoleDashboard from "./pages/MyRoleDashboard";
 
@@ -25,15 +24,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}</>;
-}
-
-function LinkedRoute({ children }: { children: React.ReactNode }) {
-  const { isLinked } = useProfile();
-  const { loading } = useAuth();
-
-  if (loading) return <AppLoadingScreen />;
-  if (!isLinked) return <Navigate to="/link-profile" replace />;
   return <>{children}</>;
 }
 
@@ -80,17 +70,7 @@ function AppRoutes() {
         path="/"
         element={
           <ProtectedRoute>
-            <LinkedRoute>
-              <Dashboard />
-            </LinkedRoute>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/link-profile"
-        element={
-          <ProtectedRoute>
-            <LinkProfile />
+            <Dashboard />
           </ProtectedRoute>
         }
       />
@@ -98,9 +78,7 @@ function AppRoutes() {
         path="/role-signup"
         element={
           <ProtectedRoute>
-            <LinkedRoute>
-              <RoleSignup />
-            </LinkedRoute>
+            <RoleSignup />
           </ProtectedRoute>
         }
       />
@@ -108,9 +86,7 @@ function AppRoutes() {
         path="/my-role/:meetingId"
         element={
           <ProtectedRoute>
-            <LinkedRoute>
-              <MyRoleDashboard />
-            </LinkedRoute>
+            <MyRoleDashboard />
           </ProtectedRoute>
         }
       />

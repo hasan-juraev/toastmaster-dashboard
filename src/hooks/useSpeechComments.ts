@@ -1,9 +1,12 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import type { SpeechComment } from "../types/database";
 
 export function useSpeechComments(speechId: string) {
-  return useQuery<SpeechComment[]>({
+  const queryClient = useQueryClient();
+
+  const query = useQuery<SpeechComment[]>({
     queryKey: ["speech_comments", speechId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -17,6 +20,30 @@ export function useSpeechComments(speechId: string) {
     },
     enabled: !!speechId,
   });
+
+  useEffect(() => {
+    if (!speechId) return;
+
+    const channel = supabase
+      .channel(`speech_comments_${speechId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "speech_comments",
+          filter: `speech_id=eq.${speechId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["speech_comments", speechId] });
+        },
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [speechId, queryClient]);
+
+  return query;
 }
 
 export function useCreateSpeechComment() {

@@ -34,6 +34,8 @@ export function useVotes(meetingId: string) {
 export function useVoteResults(meetingId: string, members: { id: string; name: string }[]) {
   const { data: votes = [] } = useVotes(meetingId);
 
+  const memberNameMap = new Map(members.map((m) => [m.id, m.name]));
+
   const categories: VoteCategory[] = [
     "Best Speaker",
     "Best Table Topics Speaker",
@@ -55,7 +57,7 @@ export function useVoteResults(meetingId: string, members: { id: string; name: s
     const tally: VoteTally[] = Array.from(countMap.entries())
       .map(([member_id, count]) => ({
         member_id,
-        member_name: members.find((m) => m.id === member_id)?.name ?? "Unknown",
+        member_name: memberNameMap.get(member_id) ?? "Unknown",
         count,
       }))
       .sort((a, b) => b.count - a.count);
