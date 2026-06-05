@@ -114,7 +114,7 @@ export default function RoleSignup() {
           </div>
         ) : roles.length === 0 ? (
           <div className="app-panel rounded-[1.5rem] px-5 py-10 text-center text-app-text-muted">
-            No roles are open for signup yet. Check back later.
+            No roles found for this meeting.
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -191,7 +191,7 @@ export default function RoleSignup() {
         )}
 
         <p className="text-center text-xs text-app-text-subtle">
-          Role slots refresh automatically every 10 seconds.
+          Role slots update in real time.
         </p>
       </section>
     </AppShell>
