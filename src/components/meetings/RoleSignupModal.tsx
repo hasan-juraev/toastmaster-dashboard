@@ -65,7 +65,7 @@ export default function RoleSignupModal({ meetingId, meetingLabel, onClose }: Pr
             <p className="py-8 text-center text-sm text-app-text-muted">Loading roles…</p>
           ) : meetingRoles.length === 0 ? (
             <p className="py-8 text-center text-sm text-app-text-muted">
-              No roles have been opened for signup yet.
+              No roles found for this meeting.
             </p>
           ) : (
             meetingRoles.map((mr) => {
@@ -144,7 +144,7 @@ export default function RoleSignupModal({ meetingId, meetingLabel, onClose }: Pr
         </div>
 
         <p className="border-t border-app-border px-6 py-4 text-center text-xs text-app-text-subtle">
-          Role availability refreshes every 10 seconds.
+          Role availability updates in real time.
         </p>
       </div>
     </div>
