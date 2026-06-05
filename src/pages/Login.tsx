@@ -77,18 +77,13 @@ export default function Login() {
           <div className="relative z-10">
             <div className="flex items-center gap-3">
               <div
-                className="flex h-11 w-11 items-center justify-center rounded-2xl"
+                className="flex h-11 w-11 items-center justify-center rounded-2xl overflow-hidden"
                 style={{
                   background: "rgba(59,130,246,0.2)",
                   border: "1px solid rgba(59,130,246,0.3)",
                 }}
               >
-                <span
-                  className="material-symbols-outlined text-xl"
-                  style={{ color: "rgb(147 197 253)" }}
-                >
-                  trending_up
-                </span>
+                <img src="/icon.svg" alt="ProgressyL logo" className="h-7 w-7" />
               </div>
               <div>
                 <p
@@ -174,10 +169,8 @@ export default function Login() {
           >
             {/* Mobile-only brand header */}
             <div className="mb-8 text-center md:hidden">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[1.1rem] bg-primary/10">
-                <span className="material-symbols-outlined text-2xl text-primary">
-                  trending_up
-                </span>
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[1.1rem] bg-primary/10 overflow-hidden">
+                <img src="/icon.svg" alt="ProgressyL logo" className="h-9 w-9" />
               </div>
               <p className="app-eyebrow mb-1">{CLUB_NAME}</p>
               <h1 className="text-[1.9rem] font-semibold tracking-tight text-app-text">
