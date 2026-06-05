@@ -88,6 +88,20 @@ function ProfileNavItem({ mobile }: { mobile?: boolean }) {
   );
 }
 
+function MobileSignOutButton() {
+  const navigate = useNavigate();
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/login", { replace: true });
+  };
+  return (
+    <button onClick={handleSignOut} className="app-bottom-nav__item">
+      <span className="material-symbols-outlined text-[1.35rem]">logout</span>
+      <span>Sign Out</span>
+    </button>
+  );
+}
+
 function MobileNav() {
   const location = useLocation();
   const { isAdmin } = useProfile();
@@ -121,6 +135,7 @@ function MobileNav() {
         );
       })}
       <ProfileNavItem mobile />
+      <MobileSignOutButton />
     </nav>
   );
 }
