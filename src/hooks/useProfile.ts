@@ -6,6 +6,5 @@ export function useProfile() {
     profile,
     memberId,
     isAdmin,
-    isLinked: memberId !== null,
   };
 }

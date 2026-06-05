@@ -65,7 +65,7 @@ export default function RoleSignup() {
 
   const handleUnclaim = async (roleId: string) => {
     try {
-      await unclaimRole.mutateAsync(roleId);
+      await unclaimRole.mutateAsync({ meetingRoleId: roleId, meetingId });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to withdraw from role.");
     }
@@ -123,7 +123,7 @@ export default function RoleSignup() {
               const isClaimed = !!role.member_id;
               const isPending =
                 (claimRole.isPending && claimRole.variables === role.id) ||
-                (unclaimRole.isPending && unclaimRole.variables === role.id);
+                (unclaimRole.isPending && unclaimRole.variables?.meetingRoleId === role.id);
 
               return (
                 <div

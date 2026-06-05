@@ -122,12 +122,15 @@ export function useClaimMeetingRole() {
       const { data, error } = await supabase
         .rpc("claim_meeting_role", { p_meeting_role_id: meetingRoleId });
       if (error) throw error;
-      return data;
+      return data as MeetingRole;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["meeting_roles"] });
-      queryClient.invalidateQueries({ queryKey: ["open_meeting_roles"] });
-      queryClient.invalidateQueries({ queryKey: ["my_meeting_role"] });
+    onSuccess: (data) => {
+      const mid = data?.meeting_id;
+      if (mid) {
+        queryClient.invalidateQueries({ queryKey: ["meeting_roles", mid] });
+        queryClient.invalidateQueries({ queryKey: ["open_meeting_roles", mid] });
+        queryClient.invalidateQueries({ queryKey: ["my_meeting_role", mid] });
+      }
     },
   });
 }
@@ -135,15 +138,16 @@ export function useClaimMeetingRole() {
 export function useUnclaimMeetingRole() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (meetingRoleId: string) => {
+    mutationFn: async ({ meetingRoleId }: { meetingRoleId: string; meetingId: string }) => {
       const { error } = await supabase
         .rpc("unclaim_meeting_role", { p_meeting_role_id: meetingRoleId });
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["meeting_roles"] });
-      queryClient.invalidateQueries({ queryKey: ["open_meeting_roles"] });
-      queryClient.invalidateQueries({ queryKey: ["my_meeting_role"] });
+    onSuccess: (_data, variables) => {
+      const mid = variables.meetingId;
+      queryClient.invalidateQueries({ queryKey: ["meeting_roles", mid] });
+      queryClient.invalidateQueries({ queryKey: ["open_meeting_roles", mid] });
+      queryClient.invalidateQueries({ queryKey: ["my_meeting_role", mid] });
     },
   });
 }
