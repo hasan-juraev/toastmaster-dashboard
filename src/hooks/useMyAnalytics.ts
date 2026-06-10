@@ -120,7 +120,7 @@ export function useMyAnalytics() {
       // Grammarian series
       const grammarianSeries: GrammarianPoint[] = (grammarReports ?? [])
         .map((r) => {
-          const date = (r.meetings as { date: string } | null)?.date ?? "";
+          const date = (r.meetings as unknown as { date: string } | null)?.date ?? "";
           return {
             date,
             label: formatLabel(date),
@@ -135,7 +135,7 @@ export function useMyAnalytics() {
       // Ah Counter series
       const ahCounterSeries: AhCounterPoint[] = (ahReports ?? [])
         .map((r) => {
-          const date = (r.meetings as { date: string } | null)?.date ?? "";
+          const date = (r.meetings as unknown as { date: string } | null)?.date ?? "";
           return {
             date,
             label: formatLabel(date),
@@ -147,7 +147,7 @@ export function useMyAnalytics() {
 
       // Timer series: prepared speeches only (completed = true, both seconds set)
       const preparedTimers = (timerReports ?? []).filter((r) => {
-        const speech = r.speeches as {
+        const speech = r.speeches as unknown as {
           title: string;
           completed: boolean;
         } | null;
@@ -161,20 +161,20 @@ export function useMyAnalytics() {
       // Count how many speeches per date to decide whether to suffix labels
       const dateTotals: Record<string, number> = {};
       preparedTimers.forEach((r) => {
-        const date = (r.meetings as { date: string } | null)?.date ?? "";
+        const date = (r.meetings as unknown as { date: string } | null)?.date ?? "";
         dateTotals[date] = (dateTotals[date] ?? 0) + 1;
       });
 
       const dateIdx: Record<string, number> = {};
       const timerSeries: TimerPoint[] = preparedTimers
         .sort((a, b) => {
-          const da = (a.meetings as { date: string } | null)?.date ?? "";
-          const db = (b.meetings as { date: string } | null)?.date ?? "";
+          const da = (a.meetings as unknown as { date: string } | null)?.date ?? "";
+          const db = (b.meetings as unknown as { date: string } | null)?.date ?? "";
           return da.localeCompare(db);
         })
         .map((r) => {
-          const date = (r.meetings as { date: string } | null)?.date ?? "";
-          const speech = r.speeches as {
+          const date = (r.meetings as unknown as { date: string } | null)?.date ?? "";
+          const speech = r.speeches as unknown as {
             title: string;
             completed: boolean;
           } | null;
@@ -201,7 +201,7 @@ export function useMyAnalytics() {
       const months6 = getLast6Months();
       const monthlyCounts: Record<string, number> = {};
       (speeches ?? []).forEach((s) => {
-        const date = (s.meetings as { date: string } | null)?.date;
+        const date = (s.meetings as unknown as { date: string } | null)?.date;
         if (date) {
           const key = date.substring(0, 7);
           monthlyCounts[key] = (monthlyCounts[key] ?? 0) + 1;
