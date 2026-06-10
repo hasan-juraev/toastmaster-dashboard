@@ -213,9 +213,6 @@ export default function Meetings() {
                 <span className="text-3xl font-bold text-app-text">
                   {displayedTotal}
                 </span>
-                {clubSettings?.total_meetings_override != null && (
-                  <span className="text-xs text-app-text-subtle">(manual)</span>
-                )}
               </div>
             )}
           </div>
