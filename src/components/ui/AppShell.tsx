@@ -51,8 +51,8 @@ function SignOutButton() {
 function ProfileNavItem({ mobile }: { mobile?: boolean }) {
   const { memberId } = useProfile();
   const location = useLocation();
-  const to = memberId ? `/members/${memberId}` : "/members";
-  const isActive = location.pathname.startsWith("/members");
+  const to = memberId ? `/profile/${memberId}` : "/members";
+  const isActive = location.pathname.startsWith("/members") || location.pathname.startsWith("/profile");
 
   if (mobile) {
     return (

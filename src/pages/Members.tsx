@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useMembers, useDeleteMember } from "../hooks/useMembers";
-import type { Member } from "../types/database";
+import { useMembers, useDeleteMember, useSetMemberRole } from "../hooks/useMembers";
+import type { MemberWithRole } from "../types/database";
 import MemberForm from "../components/members/MemberForm";
 import { AppShell } from "../components/ui/AppShell";
 import { useProfile } from "../hooks/useProfile";
+
+type ClubRole = 'super_admin' | 'admin' | 'member' | 'guest';
 
 function MemberStatusBadge({ active }: { active: boolean }) {
   return (
@@ -20,17 +22,93 @@ function MemberStatusBadge({ active }: { active: boolean }) {
   );
 }
 
+const ROLE_STYLES: Record<ClubRole, string> = {
+  super_admin: "bg-purple-100 text-purple-700",
+  admin:       "bg-blue-100 text-blue-700",
+  member:      "bg-slate-100 text-slate-600",
+  guest:       "bg-amber-50 text-amber-600",
+};
+
+const ROLE_LABELS: Record<ClubRole, string> = {
+  super_admin: "Super Admin",
+  admin:       "Admin",
+  member:      "Member",
+  guest:       "Guest",
+};
+
+function RoleBadge({ role }: { role: ClubRole }) {
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${ROLE_STYLES[role]}`}>
+      {ROLE_LABELS[role]}
+    </span>
+  );
+}
+
+interface RoleSelectProps {
+  member: MemberWithRole;
+  onClose: () => void;
+}
+
+function RoleSelectPopover({ member, onClose }: RoleSelectProps) {
+  const setRole = useSetMemberRole();
+  const [pending, setPending] = useState(false);
+
+  const handleSelect = async (role: ClubRole) => {
+    if (role === member.club_role) { onClose(); return; }
+    setPending(true);
+    try {
+      await setRole.mutateAsync({ memberId: member.id, role });
+      onClose();
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const options: ClubRole[] = ["admin", "member", "guest"];
+
+  return (
+    <div className="absolute right-0 top-8 z-10 w-40 rounded-2xl border border-app-border bg-app-panel py-2 shadow-app-card">
+      {options.map((role) => (
+        <button
+          key={role}
+          disabled={pending}
+          onClick={() => handleSelect(role)}
+          className={`w-full px-4 py-2 text-left text-sm transition hover:bg-app-panel-soft disabled:opacity-50 ${
+            member.club_role === role ? "font-semibold text-primary" : "text-app-text"
+          }`}
+        >
+          {ROLE_LABELS[role]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function Members() {
   const { data: members, isLoading, error } = useMembers();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingMember, setEditingMember] = useState<Member | null>(null);
-  const [deletingMember, setDeletingMember] = useState<Member | null>(null);
-  const { isAdmin } = useProfile();
+  const [editingMember, setEditingMember] = useState<MemberWithRole | null>(null);
+  const [deletingMember, setDeletingMember] = useState<MemberWithRole | null>(null);
+  const [rolePopoverFor, setRolePopoverFor] = useState<string | null>(null);
+  const { isAdmin, isSuperAdmin } = useProfile();
   const deleteMember = useDeleteMember();
-  const activeCount = members?.filter((member) => member.active).length ?? 0;
+
+  const activeCount = members?.filter((m) => m.active).length ?? 0;
   const inactiveCount = (members?.length ?? 0) - activeCount;
 
-  const handleEdit = (member: Member) => {
+  const canEdit = (member: MemberWithRole) => {
+    if (isSuperAdmin) return true;
+    if (isAdmin && (member.club_role === "admin" || member.club_role === "super_admin")) return false;
+    return isAdmin;
+  };
+
+  const canDelete = (member: MemberWithRole) => {
+    if (isSuperAdmin) return true;
+    if (isAdmin && (member.club_role === "admin" || member.club_role === "super_admin")) return false;
+    return isAdmin;
+  };
+
+  const handleEdit = (member: MemberWithRole) => {
     setEditingMember(member);
     setIsFormOpen(true);
   };
@@ -115,16 +193,14 @@ export default function Members() {
           </div>
         ) : members?.length ? (
           <>
+            {/* Mobile cards */}
             <div className="space-y-4 md:hidden">
               {members.map((member) => (
-                <article
-                  key={member.id}
-                  className="app-panel rounded-[1.5rem] p-5"
-                >
+                <article key={member.id} className="app-panel rounded-[1.5rem] p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <Link
-                        to={`/members/${member.id}`}
+                        to={`/profile/${member.id}`}
                         className="block text-xl font-semibold text-app-text transition hover:text-primary"
                       >
                         {member.name}
@@ -133,37 +209,60 @@ export default function Members() {
                         {member.email || "No email added"}
                       </p>
                     </div>
-                    <MemberStatusBadge active={member.active} />
+                    <div className="flex flex-col items-end gap-2">
+                      <MemberStatusBadge active={member.active} />
+                      <RoleBadge role={member.club_role as ClubRole} />
+                    </div>
                   </div>
 
                   <div className="mt-5 flex gap-3">
                     <Link
-                      to={`/members/${member.id}`}
+                      to={`/profile/${member.id}`}
                       className="flex-1 rounded-xl border border-app-border bg-app-panel-soft px-4 py-3 text-center text-sm font-medium text-app-text"
                     >
                       View
                     </Link>
-                    {isAdmin && (
-                      <>
-                        <button
-                          onClick={() => handleEdit(member)}
-                          className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => setDeletingMember(member)}
-                          className="flex-1 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600"
-                        >
-                          Delete
-                        </button>
-                      </>
+                    {canEdit(member) && (
+                      <button
+                        onClick={() => handleEdit(member)}
+                        className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white"
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {canDelete(member) && (
+                      <button
+                        onClick={() => setDeletingMember(member)}
+                        className="flex-1 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600"
+                      >
+                        Delete
+                      </button>
                     )}
                   </div>
+
+                  {isSuperAdmin && member.club_role !== "super_admin" && (
+                    <div className="relative mt-3">
+                      <button
+                        onClick={() =>
+                          setRolePopoverFor(rolePopoverFor === member.id ? null : member.id)
+                        }
+                        className="w-full rounded-xl border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition hover:bg-app-panel-soft"
+                      >
+                        Change Role
+                      </button>
+                      {rolePopoverFor === member.id && (
+                        <RoleSelectPopover
+                          member={member}
+                          onClose={() => setRolePopoverFor(null)}
+                        />
+                      )}
+                    </div>
+                  )}
                 </article>
               ))}
             </div>
 
+            {/* Desktop table */}
             <div className="hidden overflow-hidden rounded-[1.75rem] border border-app-border bg-app-panel shadow-app-card md:block">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-app-border">
@@ -174,6 +273,9 @@ export default function Members() {
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
                         Email
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
+                        Role
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-app-text-muted">
                         Status
@@ -191,7 +293,7 @@ export default function Members() {
                       >
                         <td className="px-6 py-5 whitespace-nowrap">
                           <Link
-                            to={`/members/${member.id}`}
+                            to={`/profile/${member.id}`}
                             className="font-medium text-primary hover:text-primary/80"
                           >
                             {member.name}
@@ -201,25 +303,50 @@ export default function Members() {
                           {member.email || "-"}
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap">
+                          <RoleBadge role={member.club_role as ClubRole} />
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap">
                           <MemberStatusBadge active={member.active} />
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap text-right">
-                          {isAdmin && (
-                            <div className="flex items-center justify-end gap-4">
+                          <div className="flex items-center justify-end gap-4">
+                            {canEdit(member) && (
                               <button
                                 onClick={() => handleEdit(member)}
                                 className="text-sm font-medium text-primary hover:text-primary/80"
                               >
                                 Edit
                               </button>
+                            )}
+                            {canDelete(member) && (
                               <button
                                 onClick={() => setDeletingMember(member)}
                                 className="text-sm font-medium text-red-500 hover:text-red-700"
                               >
                                 Delete
                               </button>
-                            </div>
-                          )}
+                            )}
+                            {isSuperAdmin && member.club_role !== "super_admin" && (
+                              <div className="relative">
+                                <button
+                                  onClick={() =>
+                                    setRolePopoverFor(
+                                      rolePopoverFor === member.id ? null : member.id,
+                                    )
+                                  }
+                                  className="text-sm font-medium text-app-text-muted hover:text-app-text"
+                                >
+                                  Role ▾
+                                </button>
+                                {rolePopoverFor === member.id && (
+                                  <RoleSelectPopover
+                                    member={member}
+                                    onClose={() => setRolePopoverFor(null)}
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

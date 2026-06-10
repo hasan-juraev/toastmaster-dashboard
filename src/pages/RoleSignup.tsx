@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
-import { useOpenMeetingRoles, useClaimMeetingRole, useUnclaimMeetingRole } from "../hooks/useRoles";
+import { useOpenMeetingRoles, useClaimMeetingRole, useUnclaimMeetingRole, useUpsertMeetingRole } from "../hooks/useRoles";
 import { useProfile } from "../hooks/useProfile";
+import { useMembers } from "../hooks/useMembers";
 import { AppShell } from "../components/ui/AppShell";
 import type { Meeting } from "../types/database";
 
@@ -16,7 +18,13 @@ function formatDate(date: string) {
 
 export default function RoleSignup() {
   const [searchParams] = useSearchParams();
-  const { memberId } = useProfile();
+  const { memberId, isAdmin } = useProfile();
+  const { data: members = [] } = useMembers();
+  const upsertMeetingRole = useUpsertMeetingRole();
+  const [adminDrafts, setAdminDrafts] = useState<Record<string, string>>({});
+  const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
+
+  const activeMembers = members.filter((m) => m.active);
 
   // Fetch next upcoming meeting if no meetingId param
   const { data: nextMeeting } = useQuery<Meeting | null>({
@@ -68,6 +76,23 @@ export default function RoleSignup() {
       await unclaimRole.mutateAsync({ meetingRoleId: roleId, meetingId });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to withdraw from role.");
+    }
+  };
+
+  const handleAdminAssign = async (role: (typeof roles)[number]) => {
+    const selectedMemberId = adminDrafts[role.id] ?? role.member_id ?? "";
+    setSavingRoleId(role.id);
+    try {
+      await upsertMeetingRole.mutateAsync({
+        meeting_id: role.meeting_id,
+        role_id: role.role_id,
+        member_id: selectedMemberId || null,
+        status: selectedMemberId ? "assigned" : "unassigned",
+      });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to assign role.");
+    } finally {
+      setSavingRoleId(null);
     }
   };
 
@@ -128,61 +153,92 @@ export default function RoleSignup() {
               return (
                 <div
                   key={role.id}
-                  className={`flex flex-col gap-4 rounded-[1.5rem] border p-5 ${
+                  className={`flex flex-col rounded-[1.5rem] border overflow-hidden ${
                     isMyRole
                       ? "border-emerald-200 bg-emerald-50"
                       : "border-app-border bg-app-panel"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-base font-semibold text-app-text">
-                        {role.roles?.name ?? "Unknown Role"}
-                      </p>
-                      {isClaimed ? (
-                        <p className="mt-1 text-sm text-app-text-muted">
-                          {isMyRole ? "You" : role.members?.name ?? "Claimed"}
+                  <div className="flex flex-col gap-4 p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-base font-semibold text-app-text">
+                          {role.roles?.name ?? "Unknown Role"}
                         </p>
-                      ) : (
-                        <p className="mt-1 text-sm text-app-text-muted">Open</p>
-                      )}
+                        {isClaimed ? (
+                          <p className="mt-1 text-sm text-app-text-muted">
+                            {isMyRole ? "You" : role.members?.name ?? "Claimed"}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-sm text-app-text-muted">Open</p>
+                        )}
+                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          isMyRole
+                            ? "bg-emerald-100 text-emerald-700"
+                            : isClaimed
+                              ? "bg-app-panel-soft text-app-text-muted"
+                              : "bg-amber-50 text-amber-600"
+                        }`}
+                      >
+                        {isMyRole ? "Your role" : isClaimed ? "Taken" : "Open"}
+                      </span>
                     </div>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        isMyRole
-                          ? "bg-emerald-100 text-emerald-700"
-                          : isClaimed
-                            ? "bg-app-panel-soft text-app-text-muted"
-                            : "bg-amber-50 text-amber-600"
-                      }`}
-                    >
-                      {isMyRole ? "Your role" : isClaimed ? "Taken" : "Open"}
-                    </span>
+
+                    {isMyRole ? (
+                      <button
+                        onClick={() => handleUnclaim(role.id)}
+                        disabled={isPending}
+                        className="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                      >
+                        {isPending ? "Withdrawing…" : "Withdraw"}
+                      </button>
+                    ) : isClaimed ? (
+                      <button
+                        disabled
+                        className="w-full cursor-not-allowed rounded-xl border border-app-border bg-app-panel-soft px-4 py-2.5 text-sm font-semibold text-app-text-muted opacity-60"
+                      >
+                        Taken
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleClaim(role.id)}
+                        disabled={isPending || !!myRole}
+                        className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-50"
+                      >
+                        {isPending ? "Signing up…" : "Sign Up"}
+                      </button>
+                    )}
                   </div>
 
-                  {isMyRole ? (
-                    <button
-                      onClick={() => handleUnclaim(role.id)}
-                      disabled={isPending}
-                      className="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                    >
-                      {isPending ? "Withdrawing…" : "Withdraw"}
-                    </button>
-                  ) : isClaimed ? (
-                    <button
-                      disabled
-                      className="w-full cursor-not-allowed rounded-xl border border-app-border bg-app-panel-soft px-4 py-2.5 text-sm font-semibold text-app-text-muted opacity-60"
-                    >
-                      Taken
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleClaim(role.id)}
-                      disabled={isPending || !!myRole}
-                      className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      {isPending ? "Signing up…" : "Sign Up"}
-                    </button>
+                  {isAdmin && (
+                    <div className="flex items-center gap-2 border-t border-app-border/60 bg-app-panel-soft px-4 py-3">
+                      <span className="shrink-0 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-app-text-subtle">
+                        Assign
+                      </span>
+                      <select
+                        className="min-w-0 flex-1 rounded-xl border border-app-border bg-app-panel px-3 py-2 text-sm text-app-text"
+                        value={adminDrafts[role.id] ?? role.member_id ?? ""}
+                        onChange={(e) =>
+                          setAdminDrafts((prev) => ({ ...prev, [role.id]: e.target.value }))
+                        }
+                      >
+                        <option value="">— Unassigned —</option>
+                        {activeMembers.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => handleAdminAssign(role)}
+                        disabled={savingRoleId === role.id}
+                        className="shrink-0 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-white transition hover:bg-primary/90 disabled:opacity-50"
+                      >
+                        {savingRoleId === role.id ? "Saving…" : "Save"}
+                      </button>
+                    </div>
                   )}
                 </div>
               );

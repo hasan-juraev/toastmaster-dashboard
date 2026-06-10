@@ -29,7 +29,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function MemberSelfRoute({ children }: { children: React.ReactNode }) {
   const { id } = useParams<{ id: string }>();
-  const { isAdmin, memberId } = useProfile();
+  const { user, loading } = useAuth();
+  const { profile, isAdmin, memberId } = useProfile();
+
+  if (loading || (user && !profile)) {
+    return <AppLoadingScreen message="Checking your club session..." />;
+  }
 
   if (!isAdmin && memberId !== id) {
     return (
@@ -42,7 +47,13 @@ function MemberSelfRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAdmin } = useProfile();
+  const { user, loading } = useAuth();
+  const { profile, isAdmin } = useProfile();
+
+  if (loading || (user && !profile)) {
+    return <AppLoadingScreen message="Checking your club session..." />;
+  }
+
   if (!isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -101,7 +112,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/members/:id"
+        path="/profile/:id"
         element={
           <ProtectedRoute>
             <MemberSelfRoute>

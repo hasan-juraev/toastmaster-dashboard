@@ -4,6 +4,8 @@ import { useAuth } from "../app/AuthContext";
 import { useProfile } from "../hooks/useProfile";
 import { useMembers } from "../hooks/useMembers";
 import { useMeetings } from "../hooks/useMeetings";
+import { useClubSettings } from "../hooks/useClubSettings";
+import { useMilestoneConfetti } from "../hooks/useMilestoneConfetti";
 import { useMyMeetingRole, useOpenMeetingRoles } from "../hooks/useRoles";
 import { useMeetingRoleSignups } from "../hooks/useRoleSignups";
 import { AppShell } from "../components/ui/AppShell";
@@ -393,15 +395,19 @@ export default function Dashboard() {
   const { memberId } = useProfile();
   const { data: members } = useMembers();
   const { data: meetings } = useMeetings();
+  const { data: clubSettings } = useClubSettings();
+  const totalMeetings = clubSettings?.total_meetings_override ?? meetings?.length ?? 0;
+  useMilestoneConfetti(totalMeetings);
 
   const memberRecord = memberId
     ? members?.find((m) => m.id === memberId)
     : null;
-  const firstName = memberRecord
-    ? memberRecord.name.split(" ")[0]
-    : (user?.email?.split("@")[0].split(".")[0] ?? "there");
-  const displayName =
-    firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+  const displayName = memberRecord
+    ? memberRecord.name.trim()
+    : (user?.email?.split("@")[0].split(".")[0] ?? "there").replace(
+        /^\w/,
+        (c) => c.toUpperCase(),
+      );
 
   const greeting = getGreeting();
   const nextMeeting = meetings?.find(
@@ -513,7 +519,7 @@ export default function Dashboard() {
             <StatCard
               icon="assignment_ind"
               label="Total Meetings"
-              value={meetings?.length ?? 0}
+              value={totalMeetings}
             />
           </div>
         </div>

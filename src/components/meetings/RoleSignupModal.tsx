@@ -1,6 +1,8 @@
-import { useOpenMeetingRoles } from "../../hooks/useRoles";
+import { useState } from "react";
+import { useOpenMeetingRoles, useUpsertMeetingRole, type MeetingRoleWithDetails } from "../../hooks/useRoles";
 import { useMeetingRoleSignups, useSignupForRole, useWithdrawFromRole } from "../../hooks/useRoleSignups";
 import { useProfile } from "../../hooks/useProfile";
+import { useMembers } from "../../hooks/useMembers";
 
 const MULTI_SLOT_ROLES = new Set(["Speaker", "Evaluator"]);
 
@@ -11,11 +13,18 @@ interface Props {
 }
 
 export default function RoleSignupModal({ meetingId, meetingLabel, onClose }: Props) {
-  const { memberId } = useProfile();
+  const { memberId, isAdmin } = useProfile();
+  const { data: members = [] } = useMembers();
   const { data: meetingRoles = [], isLoading } = useOpenMeetingRoles(meetingId);
   const { data: signups = [] } = useMeetingRoleSignups(meetingId);
   const signupMutation = useSignupForRole();
   const withdrawMutation = useWithdrawFromRole();
+  const upsertMeetingRole = useUpsertMeetingRole();
+
+  const [adminDrafts, setAdminDrafts] = useState<Record<string, string>>({});
+  const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
+
+  const activeMembers = members.filter((m) => m.active);
 
   const handleSignup = async (roleId: string) => {
     try {
@@ -30,6 +39,23 @@ export default function RoleSignupModal({ meetingId, meetingLabel, onClose }: Pr
       await withdrawMutation.mutateAsync({ meetingId, roleId });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to withdraw.");
+    }
+  };
+
+  const handleAdminAssign = async (mr: MeetingRoleWithDetails) => {
+    const selectedMemberId = adminDrafts[mr.id] ?? mr.member_id ?? "";
+    setSavingRoleId(mr.id);
+    try {
+      await upsertMeetingRole.mutateAsync({
+        meeting_id: mr.meeting_id,
+        role_id: mr.role_id,
+        member_id: selectedMemberId || null,
+        status: selectedMemberId ? "assigned" : "unassigned",
+      });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to assign role.");
+    } finally {
+      setSavingRoleId(null);
     }
   };
 
@@ -75,68 +101,102 @@ export default function RoleSignupModal({ meetingId, meetingLabel, onClose }: Pr
               const mySignup = roleSignups.find((s) => s.member_id === memberId);
               const adminAssigned = !!mr.member_id;
               const isTakenBySomeoneElse = !isMulti && roleSignups.length > 0 && !mySignup;
+              const adminDraftValue = adminDrafts[mr.id] ?? mr.member_id ?? "";
 
               return (
                 <div
                   key={mr.id}
-                  className="flex items-start justify-between gap-3 rounded-[1.25rem] border border-app-border bg-app-panel-soft p-4"
+                  className="rounded-[1.25rem] border border-app-border bg-app-panel-soft"
                 >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-app-text">{roleName}</p>
-                      {isMulti && (
-                        <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-600">
-                          Multiple
-                        </span>
-                      )}
+                  {/* Role info + member signup row */}
+                  <div className="flex items-start justify-between gap-3 p-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-app-text">{roleName}</p>
+                        {isMulti && (
+                          <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-600">
+                            Multiple
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-1">
+                        {adminAssigned ? (
+                          <p className="text-sm text-app-text-muted">
+                            Assigned: <span className="font-medium">{mr.members?.name ?? "—"}</span>
+                          </p>
+                        ) : roleSignups.length === 0 ? (
+                          <p className="text-sm text-app-text-muted">Open — no one signed up yet</p>
+                        ) : (
+                          <p className="text-sm text-app-text-muted">
+                            {isMulti ? (
+                              roleSignups.map((s) => s.members?.name ?? "—").join(", ")
+                            ) : (
+                              <>Taken by <span className="font-medium">{roleSignups[0].members?.name ?? "—"}</span></>
+                            )}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="mt-1">
+                    <div className="shrink-0">
                       {adminAssigned ? (
-                        <p className="text-sm text-app-text-muted">
-                          Assigned: <span className="font-medium">{mr.members?.name ?? "—"}</span>
-                        </p>
-                      ) : roleSignups.length === 0 ? (
-                        <p className="text-sm text-app-text-muted">Open — no one signed up yet</p>
+                        <span className="inline-block rounded-xl bg-app-panel px-3 py-1.5 text-xs font-semibold text-app-text-muted">
+                          Assigned
+                        </span>
+                      ) : mySignup ? (
+                        <button
+                          onClick={() => handleWithdraw(mr.role_id)}
+                          disabled={withdrawMutation.isPending}
+                          className="rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                        >
+                          Withdraw
+                        </button>
+                      ) : isTakenBySomeoneElse ? (
+                        <span className="inline-block rounded-xl bg-app-panel px-3 py-1.5 text-xs font-semibold text-app-text-muted">
+                          Taken
+                        </span>
                       ) : (
-                        <p className="text-sm text-app-text-muted">
-                          {isMulti ? (
-                            roleSignups.map((s) => s.members?.name ?? "—").join(", ")
-                          ) : (
-                            <>Taken by <span className="font-medium">{roleSignups[0].members?.name ?? "—"}</span></>
-                          )}
-                        </p>
+                        <button
+                          onClick={() => handleSignup(mr.role_id)}
+                          disabled={signupMutation.isPending}
+                          className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary/90 disabled:opacity-50"
+                        >
+                          Sign Up
+                        </button>
                       )}
                     </div>
                   </div>
 
-                  <div className="shrink-0">
-                    {adminAssigned ? (
-                      <span className="inline-block rounded-xl bg-app-panel px-3 py-1.5 text-xs font-semibold text-app-text-muted">
-                        Assigned
+                  {/* Admin assignment row */}
+                  {isAdmin && (
+                    <div className="flex items-center gap-2 border-t border-app-border/60 px-4 py-3">
+                      <span className="shrink-0 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-app-text-subtle">
+                        Assign
                       </span>
-                    ) : mySignup ? (
-                      <button
-                        onClick={() => handleWithdraw(mr.role_id)}
-                        disabled={withdrawMutation.isPending}
-                        className="rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                      <select
+                        className="min-w-0 flex-1 rounded-xl border border-app-border bg-app-panel px-3 py-2 text-sm text-app-text"
+                        value={adminDraftValue}
+                        onChange={(e) =>
+                          setAdminDrafts((prev) => ({ ...prev, [mr.id]: e.target.value }))
+                        }
                       >
-                        Withdraw
-                      </button>
-                    ) : isTakenBySomeoneElse ? (
-                      <span className="inline-block rounded-xl bg-app-panel px-3 py-1.5 text-xs font-semibold text-app-text-muted">
-                        Taken
-                      </span>
-                    ) : (
+                        <option value="">— Unassigned —</option>
+                        {activeMembers.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
                       <button
-                        onClick={() => handleSignup(mr.role_id)}
-                        disabled={signupMutation.isPending}
-                        className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary/90 disabled:opacity-50"
+                        onClick={() => handleAdminAssign(mr)}
+                        disabled={savingRoleId === mr.id}
+                        className="shrink-0 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-white transition hover:bg-primary/90 disabled:opacity-50"
                       >
-                        Sign Up
+                        {savingRoleId === mr.id ? "Saving…" : "Save"}
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               );
             })

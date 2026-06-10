@@ -9,6 +9,7 @@ export interface AuthContextType {
   profile: Profile | null;
   memberId: string | null;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -18,6 +19,7 @@ export const AuthContext = createContext<AuthContextType>({
   profile: null,
   memberId: null,
   isAdmin: false,
+  isSuperAdmin: false,
 });
 
 export function useAuth() {

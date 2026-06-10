@@ -1,7 +1,7 @@
 export interface Profile {
   id: string;
   member_id: string | null;
-  club_role: 'admin' | 'member';
+  club_role: 'super_admin' | 'admin' | 'member' | 'guest';
   created_at: string;
 }
 
@@ -11,6 +11,10 @@ export interface Member {
   email: string | null;
   active: boolean;
   created_at: string;
+}
+
+export interface MemberWithRole extends Member {
+  club_role: 'super_admin' | 'admin' | 'member' | 'guest';
 }
 
 export type MeetingStatus = "upcoming" | "in_progress" | "completed" | "cancelled";
