@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useMeetings, useUpdateMeeting } from "../hooks/useMeetings";
+import { useMeetings, useUpdateMeeting, useDeleteMeeting } from "../hooks/useMeetings";
+import { useClubSettings, useUpdateTotalMeetingsOverride } from "../hooks/useClubSettings";
+import { useMilestoneConfetti } from "../hooks/useMilestoneConfetti";
 import type { Meeting } from "../types/database";
 import MeetingForm from "../components/meetings/MeetingForm";
 import RoleSignupModal from "../components/meetings/RoleSignupModal";
@@ -45,7 +47,36 @@ export default function Meetings() {
   const [signupMeetingId, setSignupMeetingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const updateMeeting = useUpdateMeeting();
+  const deleteMeeting = useDeleteMeeting();
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const { data: clubSettings } = useClubSettings();
+  const updateTotalOverride = useUpdateTotalMeetingsOverride();
+  const [editingTotal, setEditingTotal] = useState(false);
+  const [totalDraft, setTotalDraft] = useState("");
   const { isAdmin } = useProfile();
+
+  const displayedTotal =
+    clubSettings?.total_meetings_override ?? meetings?.length ?? 0;
+
+  useMilestoneConfetti(displayedTotal);
+
+  const handleTotalEdit = () => {
+    setTotalDraft(String(displayedTotal));
+    setEditingTotal(true);
+  };
+
+  const handleTotalSave = async () => {
+    const parsed = parseInt(totalDraft, 10);
+    if (!isNaN(parsed) && parsed >= 0) {
+      await updateTotalOverride.mutateAsync(parsed);
+    }
+    setEditingTotal(false);
+  };
+
+  const handleTotalReset = async () => {
+    await updateTotalOverride.mutateAsync(null);
+    setEditingTotal(false);
+  };
   const upcomingCount =
     meetings?.filter((meeting) => meeting.status === "upcoming").length ?? 0;
   const completedCount =
@@ -73,6 +104,16 @@ export default function Meetings() {
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingMeeting(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteMeeting.mutateAsync(id);
+    } catch (err) {
+      console.error("Error deleting meeting:", err);
+    } finally {
+      setConfirmDeleteId(null);
+    }
   };
 
   return (
@@ -113,14 +154,67 @@ export default function Meetings() {
             ) : null;
           })()}
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="app-panel rounded-[1.5rem] p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
-              Total Meetings
-            </p>
-            <div className="mt-3 text-3xl font-bold text-app-text">
-              {meetings?.length ?? 0}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                Total Meetings
+              </p>
+              {isAdmin && !editingTotal && (
+                <button
+                  onClick={handleTotalEdit}
+                  className="text-xs text-app-text-muted hover:text-primary"
+                >
+                  Edit
+                </button>
+              )}
             </div>
+            {isAdmin && editingTotal ? (
+              <div className="mt-3 space-y-2">
+                <input
+                  type="number"
+                  min={0}
+                  value={totalDraft}
+                  onChange={(e) => setTotalDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleTotalSave();
+                    if (e.key === "Escape") setEditingTotal(false);
+                  }}
+                  autoFocus
+                  className="w-full rounded-xl border border-app-border bg-app-panel-soft px-3 py-2 text-2xl font-bold text-app-text"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleTotalSave}
+                    disabled={updateTotalOverride.isPending}
+                    className="flex-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                  {clubSettings?.total_meetings_override != null && (
+                    <button
+                      onClick={handleTotalReset}
+                      disabled={updateTotalOverride.isPending}
+                      className="rounded-xl border border-app-border px-3 py-1.5 text-xs text-app-text-muted hover:text-app-text disabled:opacity-50"
+                    >
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setEditingTotal(false)}
+                    className="rounded-xl border border-app-border px-3 py-1.5 text-xs text-app-text-muted hover:text-app-text"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-app-text">
+                  {displayedTotal}
+                </span>
+              </div>
+            )}
           </div>
           <div className="app-panel rounded-[1.5rem] p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
@@ -128,14 +222,6 @@ export default function Meetings() {
             </p>
             <div className="mt-3 text-3xl font-bold text-app-text">
               {upcomingCount}
-            </div>
-          </div>
-          <div className="app-panel rounded-[1.5rem] p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
-              Completed
-            </p>
-            <div className="mt-3 text-3xl font-bold text-app-text">
-              {completedCount}
             </div>
           </div>
         </div>
@@ -226,6 +312,30 @@ export default function Meetings() {
                             ? "Reopen"
                             : "Mark Done"}
                         </button>
+                        {confirmDeleteId === meeting.id ? (
+                          <>
+                            <button
+                              onClick={() => handleDelete(meeting.id)}
+                              disabled={deleteMeeting.isPending}
+                              className="rounded-xl bg-red-500 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="rounded-xl border border-app-border bg-app-panel-soft px-4 py-3 text-sm font-medium text-app-text"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(meeting.id)}
+                            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -305,12 +415,38 @@ export default function Meetings() {
                         </td>
                         {isAdmin && (
                           <td className="px-6 py-5 whitespace-nowrap text-right">
-                            <button
-                              onClick={() => handleEdit(meeting)}
-                              className="text-sm font-medium text-primary hover:text-primary/80"
-                            >
-                              Edit
-                            </button>
+                            <div className="flex items-center justify-end gap-4">
+                              <button
+                                onClick={() => handleEdit(meeting)}
+                                className="text-sm font-medium text-primary hover:text-primary/80"
+                              >
+                                Edit
+                              </button>
+                              {confirmDeleteId === meeting.id ? (
+                                <>
+                                  <button
+                                    onClick={() => handleDelete(meeting.id)}
+                                    disabled={deleteMeeting.isPending}
+                                    className="text-sm font-semibold text-red-600 hover:text-red-500 disabled:opacity-50"
+                                  >
+                                    Confirm
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    className="text-sm font-medium text-app-text-muted hover:text-app-text"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmDeleteId(meeting.id)}
+                                  className="text-sm font-medium text-red-500 hover:text-red-600"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
                           </td>
                         )}
                       </tr>

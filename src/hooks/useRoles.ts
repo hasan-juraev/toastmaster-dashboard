@@ -71,6 +71,9 @@ export function useUpsertMeetingRole() {
       queryClient.invalidateQueries({
         queryKey: ["meeting_roles", variables.meeting_id],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["open_meeting_roles", variables.meeting_id],
+      });
     },
   });
 }

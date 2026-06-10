@@ -56,10 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const memberId = profile?.member_id ?? null;
-  const isAdmin = profile?.club_role === "admin";
+  const isSuperAdmin = profile?.club_role === "super_admin";
+  const isAdmin = profile?.club_role === "admin" || isSuperAdmin;
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, memberId, isAdmin }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, memberId, isAdmin, isSuperAdmin }}>
       {children}
     </AuthContext.Provider>
   );

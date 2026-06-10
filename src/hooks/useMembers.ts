@@ -1,18 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
-import type { Member } from "../types/database";
+import type { Member, MemberWithRole } from "../types/database";
 
 export function useMembers() {
   return useQuery({
     queryKey: ["members"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("members")
-        .select("*")
-        .order("name");
+        .rpc("get_members_with_roles");
 
       if (error) throw error;
-      return data as Member[];
+      return data as MemberWithRole[];
     },
   });
 }
@@ -31,10 +29,8 @@ export function useCreateMember() {
       if (error) throw error;
       return data as Member;
     },
-    onSuccess: (newMember) => {
-      queryClient.setQueryData<Member[]>(["members"], (old = []) =>
-        [...old, newMember].sort((a, b) => a.name.localeCompare(b.name)),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
     },
   });
 }
@@ -57,10 +53,8 @@ export function useUpdateMember() {
       if (error) throw error;
       return data as Member;
     },
-    onSuccess: (updated) => {
-      queryClient.setQueryData<Member[]>(["members"], (old = []) =>
-        old.map((m) => (m.id === updated.id ? updated : m)),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
     },
   });
 }
@@ -78,6 +72,23 @@ export function useDeleteMember() {
       queryClient.invalidateQueries({ queryKey: ["meeting_roles"] });
       queryClient.invalidateQueries({ queryKey: ["votes"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
+    },
+  });
+}
+
+export function useSetMemberRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ memberId, role }: { memberId: string; role: string }) => {
+      const { error } = await supabase.rpc("set_member_club_role", {
+        p_member_id: memberId,
+        p_role: role,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
     },
   });
 }
