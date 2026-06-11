@@ -645,6 +645,34 @@ export default function RoleAssignment({
 
           return (
             <article key={role.id} className="app-panel rounded-[1.6rem] p-5">
+              {(() => {
+                // Missing-report warning: role completed but no report logged
+                const isMissingAhReport =
+                  role.name === "Ah-Counter" &&
+                  assignment?.status === "completed" &&
+                  speeches.length > 0 &&
+                  roleReports.ahCounterReports.length === 0;
+                const isMissingGrammarReport =
+                  role.name === "Grammarian" &&
+                  assignment?.status === "completed" &&
+                  assignment?.id &&
+                  !roleReports.grammarianReports.find(
+                    (r) => r.meeting_role_id === assignment.id,
+                  );
+                const isMissingTimerReport =
+                  role.name === "Timer" &&
+                  assignment?.status === "completed" &&
+                  speeches.length > 0 &&
+                  roleReports.timerReports.length === 0;
+                const missingReport =
+                  isMissingAhReport || isMissingGrammarReport || isMissingTimerReport;
+                return missingReport ? (
+                  <div className="mb-3 rounded-[1rem] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                    No report logged for this completed role.
+                  </div>
+                ) : null;
+              })()}
+
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-app-text">

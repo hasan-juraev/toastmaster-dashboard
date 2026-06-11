@@ -12,6 +12,19 @@ export interface RoleDistribution {
   color: string;
 }
 
+export interface SpeakerFillerStat {
+  memberName: string;
+  avgFillers: number;
+  meetingsTracked: number;
+}
+
+export interface SpeakerTimingStat {
+  memberName: string;
+  avgDelta: number;
+  onTimeRate: number;
+  speechesTimed: number;
+}
+
 export interface AnalyticsData {
   speechesDelivered: number;
   totalSpeechesPlanned: number;
@@ -54,6 +67,8 @@ export interface AnalyticsData {
     toastmasterAvg: number;
     generalEvaluatorAvg: number;
   };
+  speakerFillerStats: SpeakerFillerStat[];
+  speakerTimingStats: SpeakerTimingStat[];
 }
 
 // Colors are a UI concern — applied client-side after the RPC returns name+count
@@ -76,8 +91,10 @@ const FALLBACK_COLORS = [
   "#06b6d4",
 ];
 
-type RpcResult = Omit<AnalyticsData, "roleDistribution"> & {
+type RpcResult = Omit<AnalyticsData, "roleDistribution" | "speakerFillerStats" | "speakerTimingStats"> & {
   roleDistribution: Array<{ name: string; count: number }>;
+  speakerFillerStats: SpeakerFillerStat[] | null;
+  speakerTimingStats: SpeakerTimingStat[] | null;
 };
 
 export function useAnalytics() {
@@ -97,6 +114,8 @@ export function useAnalytics() {
           count,
           color: ROLE_COLORS[name] ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length],
         })),
+        speakerFillerStats:  raw.speakerFillerStats  ?? [],
+        speakerTimingStats:  raw.speakerTimingStats  ?? [],
       };
     },
   });

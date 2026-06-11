@@ -9,6 +9,7 @@ import { AppShell } from "../components/ui/AppShell";
 import { useMeetingRoles, useMyMeetingRole } from "../hooks/useRoles";
 import { useProfile } from "../hooks/useProfile";
 import { useMembers } from "../hooks/useMembers";
+import { useAhCounterReports, useTimerReports } from "../hooks/useRoleReports";
 
 interface MeetingSpeech {
   id: string;
@@ -96,6 +97,138 @@ function MemberRolesView({
                 >
                   {role.status ?? (role.member_id ? "assigned" : "open")}
                 </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function fmtSecs(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+}
+
+function MeetingFeedbackCard({
+  meetingId,
+  memberId,
+  speeches,
+}: {
+  meetingId: string;
+  memberId: string;
+  speeches: MeetingSpeech[];
+}) {
+  const { data: ahReports = [] } = useAhCounterReports(meetingId);
+  const { data: timerReports = [] } = useTimerReports(meetingId);
+
+  const myAhReport = ahReports.find((r) => r.speaker_id === memberId);
+  const mySpeeches = speeches.filter((s) => s.speaker_id === memberId);
+  const myTimerReports = timerReports.filter((r) =>
+    mySpeeches.some((s) => s.id === r.speech_id),
+  );
+
+  if (!myAhReport && myTimerReports.length === 0) return null;
+
+  return (
+    <div className="app-panel rounded-[2rem] p-6">
+      <p className="app-eyebrow">Feedback Received</p>
+      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-app-text">
+        Your Meeting Feedback
+      </h2>
+
+      {myAhReport && (
+        <div className="mt-4 rounded-[1.25rem] border border-app-border bg-app-panel-soft p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+            Filler Words (Ah-Counter)
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <span className="text-3xl font-bold tabular-nums text-app-text">
+              {myAhReport.ah_count}
+            </span>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                myAhReport.ah_count <= 2
+                  ? "bg-emerald-50 text-emerald-600"
+                  : myAhReport.ah_count <= 5
+                    ? "bg-amber-50 text-amber-600"
+                    : "bg-red-50 text-red-600"
+              }`}
+            >
+              {myAhReport.ah_count <= 2
+                ? "Excellent"
+                : myAhReport.ah_count <= 5
+                  ? "Good"
+                  : "High"}
+            </span>
+          </div>
+          {myAhReport.notes && (
+            <p className="mt-2 text-sm text-app-text-muted">{myAhReport.notes}</p>
+          )}
+        </div>
+      )}
+
+      {myTimerReports.length > 0 && (
+        <div className="mt-4 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+            Speech Timing (Timer)
+          </p>
+          {myTimerReports.map((tr) => {
+            const speech = mySpeeches.find((s) => s.id === tr.speech_id);
+            const delta =
+              tr.target_seconds != null && tr.actual_seconds != null
+                ? tr.actual_seconds - tr.target_seconds
+                : null;
+            return (
+              <div
+                key={tr.id}
+                className="rounded-[1.2rem] border border-app-border bg-app-panel-soft p-4"
+              >
+                <p className="text-sm font-semibold text-app-text">
+                  {speech?.title ?? "Speech"}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-4 text-sm text-app-text-muted">
+                  {tr.target_seconds != null && (
+                    <span>
+                      Target:{" "}
+                      <span className="font-medium text-app-text">
+                        {fmtSecs(tr.target_seconds)}
+                      </span>
+                    </span>
+                  )}
+                  {tr.actual_seconds != null && (
+                    <span>
+                      Actual:{" "}
+                      <span className="font-medium text-app-text">
+                        {fmtSecs(tr.actual_seconds)}
+                      </span>
+                    </span>
+                  )}
+                  {delta != null && (
+                    <span
+                      className={`font-semibold ${
+                        Math.abs(delta) <= 15
+                          ? "text-emerald-600"
+                          : delta > 0
+                            ? "text-orange-500"
+                            : "text-sky-500"
+                      }`}
+                    >
+                      {delta > 0 ? "+" : ""}
+                      {delta}s{" "}
+                      {Math.abs(delta) <= 15
+                        ? "— on time"
+                        : delta > 0
+                          ? "— over"
+                          : "— under"}
+                    </span>
+                  )}
+                </div>
+                {tr.notes && (
+                  <p className="mt-1.5 text-sm text-app-text-muted">{tr.notes}</p>
+                )}
               </div>
             );
           })}
@@ -253,6 +386,14 @@ export default function MeetingDetail() {
         <div className="app-panel rounded-[2rem] p-6">
           <VotingSection meetingId={meeting.id} currentMemberId={memberId} isAdmin={isAdmin} />
         </div>
+
+        {!isAdmin && memberId && speeches.some((s) => s.speaker_id === memberId) && (
+          <MeetingFeedbackCard
+            meetingId={meeting.id}
+            memberId={memberId}
+            speeches={speeches}
+          />
+        )}
 
         <div className="app-panel rounded-[2rem] p-6">
           <div className="flex items-center justify-between gap-3">

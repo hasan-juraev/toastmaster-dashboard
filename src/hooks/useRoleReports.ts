@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import type {
   AhCounterReport,
   EvaluatorReport,
+  GrammarianMemberEntry,
   GrammarianReport,
   TimerReport,
 } from "../types/database";
@@ -100,13 +101,14 @@ export function useUpsertGrammarianReport() {
         .upsert(
           {
             ...(report.id ? { id: report.id } : {}),
-            meeting_role_id: report.meeting_role_id,
-            meeting_id:      report.meeting_id,
-            member_id:       report.member_id,
-            grammar_errors:  report.grammar_errors,
-            notable_phrases: report.notable_phrases,
-            score:           report.score,
-            notes:           report.notes,
+            meeting_role_id:  report.meeting_role_id,
+            meeting_id:       report.meeting_id,
+            member_id:        report.member_id,
+            grammar_errors:   report.grammar_errors,
+            notable_phrases:  report.notable_phrases,
+            score:            report.score,
+            notes:            report.notes,
+            word_of_the_day:  report.word_of_the_day,
           },
           { onConflict: "meeting_role_id" },
         )
@@ -183,6 +185,53 @@ export function useUpsertEvaluatorReport() {
     },
     onSuccess: (_data, variables) => {
       if (variables.meeting_id) invalidateReportQuery(queryClient, "evaluator", variables.meeting_id);
+    },
+  });
+}
+
+export function useGrammarianMemberEntries(grammarianReportId: string | undefined) {
+  return useQuery<GrammarianMemberEntry[]>({
+    queryKey: ["grammarian_member_entries", grammarianReportId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("grammarian_member_entries")
+        .select("*")
+        .eq("grammarian_report_id", grammarianReportId!);
+      if (error) throw error;
+      return (data ?? []) as GrammarianMemberEntry[];
+    },
+    enabled: !!grammarianReportId,
+  });
+}
+
+export function useUpsertGrammarianMemberEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      entry: Omit<GrammarianMemberEntry, "id" | "created_at"> & { id?: string },
+    ) => {
+      const { data, error } = await supabase
+        .from("grammarian_member_entries")
+        .upsert(
+          {
+            ...(entry.id ? { id: entry.id } : {}),
+            grammarian_report_id: entry.grammarian_report_id,
+            subject_member_id:    entry.subject_member_id,
+            error_count:          entry.error_count,
+            notes:                entry.notes,
+          },
+          { onConflict: "grammarian_report_id,subject_member_id" },
+        )
+        .select()
+        .single();
+      if (error) throw error;
+      return data as GrammarianMemberEntry;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["grammarian_member_entries", variables.grammarian_report_id],
+      });
     },
   });
 }

@@ -17,10 +17,12 @@ import {
 } from "recharts";
 import { AppShell } from "../components/ui/AppShell";
 import { useMyAnalytics } from "../hooks/useMyAnalytics";
+import { useAnalytics } from "../hooks/useAnalytics";
 import { useProfile } from "../hooks/useProfile";
 import type {
   AhCounterPoint,
   GrammarianPoint,
+  SpeakerTimerPoint,
   TimerPoint,
 } from "../hooks/useMyAnalytics";
 
@@ -230,11 +232,48 @@ function TimerTooltip({
   );
 }
 
+function SpeakerTimerTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: SpeakerTimerPoint }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  const statusColor = d.onTime
+    ? "text-emerald-600"
+    : d.delta > 0
+      ? "text-orange-500"
+      : "text-sky-500";
+  const statusText = d.onTime ? "On time ✓" : d.delta > 0 ? "Over" : "Under";
+  return (
+    <div className="min-w-[170px] rounded-xl border border-app-border bg-white px-3 py-2.5 text-sm shadow-app-card">
+      <p className="max-w-[160px] truncate font-semibold text-app-text">
+        {d.speechTitle}
+      </p>
+      <p className="text-xs text-app-text-muted">{d.xLabel}</p>
+      <div className="mt-1.5 space-y-1">
+        <p className="flex justify-between gap-4 text-app-text-muted">
+          Target<span className="font-medium text-app-text">{fmtSeconds(d.targetSeconds)}</span>
+        </p>
+        <p className="flex justify-between gap-4 text-app-text-muted">
+          Actual<span className="font-medium text-app-text">{fmtSeconds(d.actualSeconds)}</span>
+        </p>
+        <p className={`font-semibold ${statusColor}`}>
+          {formatDelta(d.delta)} — {statusText}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Analytics() {
-  const { memberId } = useProfile();
+  const { memberId, isAdmin } = useProfile();
   const { data, isLoading, error } = useMyAnalytics();
+  const { data: clubData } = useAnalytics();
 
   if (!memberId) {
     return (
@@ -729,7 +768,299 @@ export default function Analytics() {
                 <EmptyChartState message="No prepared speech timings yet — serve as Timer to see your data" />
               )}
             </div>
+
+            {/* ── Feedback Received (as speaker) ───────────────────────── */}
+            <div className="app-panel rounded-[1.75rem] p-5">
+              <div className="mb-5">
+                <p className="app-eyebrow">Feedback Received</p>
+                <h2 className="mt-1 text-[1.6rem] font-semibold tracking-tight text-app-text">
+                  My Speech Feedback
+                </h2>
+                <p className="mt-1 text-sm text-app-text-muted">
+                  Filler word counts and timing recorded about your speeches by role takers
+                </p>
+              </div>
+
+              {/* Filler word breakdown table */}
+              {(data?.ahCounterSeries.length ?? 0) > 0 ? (
+                <div className="mb-6">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                    Filler Words Per Meeting
+                  </p>
+                  <div className="overflow-hidden rounded-[1.2rem] border border-app-border">
+                    <table className="w-full text-sm">
+                      <thead className="bg-app-panel-soft">
+                        <tr>
+                          <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-[0.14em] text-app-text-subtle">
+                            Date
+                          </th>
+                          <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-[0.14em] text-app-text-subtle">
+                            Filler Count
+                          </th>
+                          <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-[0.14em] text-app-text-subtle">
+                            Rating
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-app-border">
+                        {data?.ahCounterSeries.map((row) => (
+                          <tr key={row.date}>
+                            <td className="px-4 py-3 text-app-text-muted">{row.label}</td>
+                            <td className="px-4 py-3 text-right font-semibold tabular-nums text-app-text">
+                              {row.ahCount}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span
+                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                  row.ahCount <= 2
+                                    ? "bg-emerald-50 text-emerald-600"
+                                    : row.ahCount <= 5
+                                      ? "bg-amber-50 text-amber-600"
+                                      : "bg-red-50 text-red-600"
+                                }`}
+                              >
+                                {row.ahCount <= 2 ? "Excellent" : row.ahCount <= 5 ? "Good" : "High"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <p className="mb-5 text-sm text-app-text-muted">
+                  No filler word reports for your speeches yet.
+                </p>
+              )}
+
+              {/* Speaker timing chart */}
+              {(data?.speakerTimerSeries.length ?? 0) > 0 ? (
+                <>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                    My Speech Timing
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <StatChip label="Speeches timed" value={data?.summaryStats.speakerTimer.speechesTimed ?? 0} />
+                    <StatChip
+                      label="Avg drift"
+                      value={formatDelta(data?.summaryStats.speakerTimer.avgDelta ?? 0)}
+                    />
+                    <StatChip
+                      label="On-time"
+                      value={`${data?.summaryStats.speakerTimer.onTimeRate ?? 0}%`}
+                      accent={
+                        (data?.summaryStats.speakerTimer.onTimeRate ?? 0) >= 70
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-700"
+                      }
+                    />
+                  </div>
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={data?.speakerTimerSeries}
+                        margin={{ top: 8, right: 8, left: -10, bottom: 4 }}
+                      >
+                        <CartesianGrid
+                          vertical={false}
+                          strokeDasharray="4 4"
+                          stroke="rgba(148,163,184,0.22)"
+                        />
+                        <XAxis
+                          dataKey="xLabel"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "#94a3b8" }}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "#94a3b8" }}
+                          tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v}s`}
+                        />
+                        <Tooltip content={<SpeakerTimerTooltip />} />
+                        <ReferenceArea y1={-15} y2={15} fill="#10b981" fillOpacity={0.07} />
+                        <ReferenceLine y={0} stroke="rgba(148,163,184,0.55)" strokeDasharray="4 4" />
+                        <Bar dataKey="delta" radius={[4, 4, 0, 0]} maxBarSize={44} name="Time Delta">
+                          {data?.speakerTimerSeries.map((entry) => (
+                            <Cell
+                              key={`${entry.date}-${entry.xLabel}`}
+                              fill={entry.onTime ? "#10b981" : entry.delta > 0 ? "#f97316" : "#06b6d4"}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-app-text-muted">
+                  No timing data for your speeches yet. Timer reports will appear here once a Timer logs your speech.
+                </p>
+              )}
+            </div>
           </>
+        )}
+
+        {/* ── Admin: Club-wide stats ───────────────────────────────── */}
+        {isAdmin && (
+          <div className="space-y-6">
+            <div>
+              <p className="app-eyebrow">Club Overview</p>
+              <h2 className="mt-1 text-[1.6rem] font-semibold tracking-tight text-app-text">
+                Club-Wide Statistics
+              </h2>
+              <p className="mt-1 text-sm text-app-text-muted">
+                Aggregated performance across all speakers — visible to admins only
+              </p>
+            </div>
+
+            {/* Filler word leaderboard */}
+            <div className="app-panel rounded-[1.75rem] p-5">
+              <div className="mb-4">
+                <p className="app-eyebrow">Ah-Counter</p>
+                <h3 className="mt-1 text-xl font-semibold text-app-text">
+                  Filler Words by Speaker
+                </h3>
+                <p className="mt-1 text-sm text-app-text-muted">
+                  Average filler words per meeting — lower is better
+                </p>
+              </div>
+              {(clubData?.speakerFillerStats.length ?? 0) > 0 ? (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={clubData?.speakerFillerStats}
+                      layout="vertical"
+                      margin={{ top: 4, right: 40, left: 8, bottom: 4 }}
+                    >
+                      <CartesianGrid
+                        horizontal={false}
+                        strokeDasharray="4 4"
+                        stroke="rgba(148,163,184,0.22)"
+                      />
+                      <XAxis
+                        type="number"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "#94a3b8" }}
+                        allowDecimals={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="memberName"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "#64748b" }}
+                        width={100}
+                      />
+                      <Tooltip
+                        formatter={(value: number, _name: string, props: { payload: { meetingsTracked: number } }) => [
+                          `${value} avg (${props.payload.meetingsTracked} meetings)`,
+                          "Avg Fillers",
+                        ]}
+                        contentStyle={{
+                          borderRadius: "0.75rem",
+                          border: "1px solid var(--color-app-border)",
+                          fontSize: "0.8125rem",
+                        }}
+                      />
+                      <Bar dataKey="avgFillers" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                        {clubData?.speakerFillerStats.map((entry) => (
+                          <Cell
+                            key={entry.memberName}
+                            fill={
+                              entry.avgFillers <= 2
+                                ? "#10b981"
+                                : entry.avgFillers <= 5
+                                  ? "#f59e0b"
+                                  : "#ef4444"
+                            }
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <EmptyChartState message="No filler word reports logged yet" />
+              )}
+            </div>
+
+            {/* Timing accuracy leaderboard */}
+            <div className="app-panel rounded-[1.75rem] p-5">
+              <div className="mb-4">
+                <p className="app-eyebrow">Timer</p>
+                <h3 className="mt-1 text-xl font-semibold text-app-text">
+                  Timing Accuracy by Speaker
+                </h3>
+                <p className="mt-1 text-sm text-app-text-muted">
+                  On-time rate per speaker — higher is better
+                </p>
+              </div>
+              {(clubData?.speakerTimingStats.length ?? 0) > 0 ? (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={clubData?.speakerTimingStats}
+                      layout="vertical"
+                      margin={{ top: 4, right: 48, left: 8, bottom: 4 }}
+                    >
+                      <CartesianGrid
+                        horizontal={false}
+                        strokeDasharray="4 4"
+                        stroke="rgba(148,163,184,0.22)"
+                      />
+                      <XAxis
+                        type="number"
+                        domain={[0, 100]}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "#94a3b8" }}
+                        tickFormatter={(v: number) => `${v}%`}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="memberName"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "#64748b" }}
+                        width={100}
+                      />
+                      <Tooltip
+                        formatter={(value: number, _name: string, props: { payload: { speechesTimed: number; avgDelta: number } }) => [
+                          `${value}% on-time (${props.payload.speechesTimed} speeches, avg ${props.payload.avgDelta > 0 ? "+" : ""}${props.payload.avgDelta}s)`,
+                          "On-Time Rate",
+                        ]}
+                        contentStyle={{
+                          borderRadius: "0.75rem",
+                          border: "1px solid var(--color-app-border)",
+                          fontSize: "0.8125rem",
+                        }}
+                      />
+                      <Bar dataKey="onTimeRate" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                        {clubData?.speakerTimingStats.map((entry) => (
+                          <Cell
+                            key={entry.memberName}
+                            fill={
+                              entry.onTimeRate >= 80
+                                ? "#10b981"
+                                : entry.onTimeRate >= 50
+                                  ? "#f59e0b"
+                                  : "#ef4444"
+                            }
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <EmptyChartState message="No timer reports logged yet" />
+              )}
+            </div>
+          </div>
         )}
       </section>
     </AppShell>

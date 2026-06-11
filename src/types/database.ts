@@ -74,6 +74,16 @@ export interface GrammarianReport {
   notable_phrases: number;
   score: number | null;
   notes: string | null;
+  word_of_the_day: string | null;
+  created_at: string;
+}
+
+export interface GrammarianMemberEntry {
+  id: string;
+  grammarian_report_id: string;
+  subject_member_id: string | null;
+  error_count: number;
+  notes: string | null;
   created_at: string;
 }
 

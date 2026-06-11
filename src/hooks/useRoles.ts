@@ -155,6 +155,22 @@ export function useUnclaimMeetingRole() {
   });
 }
 
+export function useCompleteMyMeetingRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (meetingRoleId: string) => {
+      const { error } = await supabase.rpc("complete_my_meeting_role", {
+        p_meeting_role_id: meetingRoleId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meeting_roles"] });
+      queryClient.invalidateQueries({ queryKey: ["my_meeting_role"] });
+    },
+  });
+}
+
 // Current user's role assignment for a specific meeting
 export function useMyMeetingRole(meetingId: string, memberId: string | null) {
   return useQuery({

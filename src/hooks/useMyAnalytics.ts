@@ -26,6 +26,17 @@ export interface TimerPoint {
   onTime: boolean;
 }
 
+// Timer data from the speaker's perspective (was timed by someone else)
+export interface SpeakerTimerPoint {
+  date: string;
+  xLabel: string;
+  speechTitle: string;
+  delta: number;
+  targetSeconds: number;
+  actualSeconds: number;
+  onTime: boolean;
+}
+
 export interface MyAnalyticsData {
   memberName: string;
   speechesDelivered: number;
@@ -36,10 +47,12 @@ export interface MyAnalyticsData {
   grammarianSeries: GrammarianPoint[];
   ahCounterSeries: AhCounterPoint[];
   timerSeries: TimerPoint[];
+  speakerTimerSeries: SpeakerTimerPoint[];
   summaryStats: {
     grammarian: { timesServed: number; avgErrors: number; avgScore: number };
     ahCounter: { timesTracked: number; avgFillers: number };
     timer: { speechesTimed: number; avgDelta: number; onTimeRate: number };
+    speakerTimer: { speechesTimed: number; avgDelta: number; onTimeRate: number };
   };
 }
 
@@ -78,6 +91,7 @@ export function useMyAnalytics() {
         { data: grammarReports },
         { data: ahReports },
         { data: timerReports },
+        { data: speakerSpeeches },
       ] = await Promise.all([
         supabase.from("members").select("name").eq("id", memberId!).single(),
         supabase
@@ -104,6 +118,12 @@ export function useMyAnalytics() {
           )
           .eq("member_id", memberId!)
           .not("speech_id", "is", null),
+        // Speeches where I was the speaker and a timer report exists
+        supabase
+          .from("speeches")
+          .select("id, title, meetings(date), timer_reports(target_seconds, actual_seconds)")
+          .eq("speaker_id", memberId!)
+          .eq("completed", true),
       ]);
 
       const memberName = (memberRow as { name: string } | null)?.name ?? "You";
@@ -145,7 +165,7 @@ export function useMyAnalytics() {
         .filter((p) => p.date !== "")
         .sort((a, b) => a.date.localeCompare(b.date));
 
-      // Timer series: prepared speeches only (completed = true, both seconds set)
+      // Timer series: when I served as Timer
       const preparedTimers = (timerReports ?? []).filter((r) => {
         const speech = r.speeches as unknown as {
           title: string;
@@ -158,7 +178,6 @@ export function useMyAnalytics() {
         );
       });
 
-      // Count how many speeches per date to decide whether to suffix labels
       const dateTotals: Record<string, number> = {};
       preparedTimers.forEach((r) => {
         const date = (r.meetings as unknown as { date: string } | null)?.date ?? "";
@@ -196,6 +215,53 @@ export function useMyAnalytics() {
           };
         })
         .filter((p) => p.date !== "");
+
+      // Speaker timer series: timing data recorded about my speeches
+      type SpeakerSpeechRow = {
+        id: string;
+        title: string | null;
+        meetings: { date: string } | null;
+        timer_reports: Array<{ target_seconds: number | null; actual_seconds: number | null }>;
+      };
+
+      const spkDateTotals: Record<string, number> = {};
+      (speakerSpeeches ?? []).forEach((s) => {
+        const row = s as unknown as SpeakerSpeechRow;
+        const date = row.meetings?.date ?? "";
+        if (date && (row.timer_reports ?? []).length > 0) {
+          spkDateTotals[date] = (spkDateTotals[date] ?? 0) + 1;
+        }
+      });
+
+      const spkDateIdx: Record<string, number> = {};
+      const speakerTimerSeries: SpeakerTimerPoint[] = (speakerSpeeches ?? [])
+        .flatMap((s) => {
+          const row = s as unknown as SpeakerSpeechRow;
+          const date = row.meetings?.date ?? "";
+          if (!date) return [];
+          return (row.timer_reports ?? [])
+            .filter((tr) => tr.target_seconds != null && tr.actual_seconds != null)
+            .map((tr) => {
+              spkDateIdx[date] = (spkDateIdx[date] ?? 0) + 1;
+              const delta = (tr.actual_seconds ?? 0) - (tr.target_seconds ?? 0);
+              const baseLabel = formatLabel(date);
+              const xLabel =
+                (spkDateTotals[date] ?? 0) > 1
+                  ? `${baseLabel} #${spkDateIdx[date]}`
+                  : baseLabel;
+              return {
+                date,
+                xLabel,
+                speechTitle: row.title ?? "Untitled",
+                delta,
+                targetSeconds: tr.target_seconds ?? 0,
+                actualSeconds: tr.actual_seconds ?? 0,
+                onTime: Math.abs(delta) <= 15,
+              };
+            });
+        })
+        .filter((p) => p.date !== "")
+        .sort((a, b) => a.date.localeCompare(b.date));
 
       // Monthly speeches (last 6 months)
       const months6 = getLast6Months();
@@ -258,6 +324,24 @@ export function useMyAnalytics() {
             )
           : 0;
 
+      const spkAvgDelta =
+        speakerTimerSeries.length > 0
+          ? parseFloat(
+              (
+                speakerTimerSeries.reduce((s, r) => s + r.delta, 0) /
+                speakerTimerSeries.length
+              ).toFixed(1),
+            )
+          : 0;
+      const spkOnTimeRate =
+        speakerTimerSeries.length > 0
+          ? Math.round(
+              (speakerTimerSeries.filter((r) => r.onTime).length /
+                speakerTimerSeries.length) *
+                100,
+            )
+          : 0;
+
       return {
         memberName,
         speechesDelivered: speeches?.length ?? 0,
@@ -268,6 +352,7 @@ export function useMyAnalytics() {
         grammarianSeries,
         ahCounterSeries,
         timerSeries,
+        speakerTimerSeries,
         summaryStats: {
           grammarian: {
             timesServed: grammarianSeries.length,
@@ -282,6 +367,11 @@ export function useMyAnalytics() {
             speechesTimed: timerSeries.length,
             avgDelta,
             onTimeRate,
+          },
+          speakerTimer: {
+            speechesTimed: speakerTimerSeries.length,
+            avgDelta: spkAvgDelta,
+            onTimeRate: spkOnTimeRate,
           },
         },
       };
